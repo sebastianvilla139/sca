@@ -127,10 +127,45 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />    
-    <ClCompile Include="util.cpp" />    
+    <ClCompile Include="util.cpp" /> 
+	<ClCompile Include="xml\frame_info.cxx" />
+    <ClCompile Include="xml\group.cxx" />
+    <ClCompile Include="xml\minion.cxx" />	
   </ItemGroup>
   <ItemGroup>    
     <ClInclude Include="util.h" />
+	<ClInclude Include="xml\frame_info.hxx" />
+    <ClInclude Include="xml\group.hxx" />
+    <ClInclude Include="xml\minion.hxx" />
+  </ItemGroup>
+  <ItemGroup>
+    <CXX_Tree_Mapping_Rule Include="xml\frame_info.xsd">
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">xml</OutDir>
+      <GenSerialization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</GenSerialization>
+      <GenDoxygen Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</GenDoxygen>
+      <GenSerialization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenSerialization>
+      <GenDoxygen Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GenDoxygen>
+      <RootElement Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </RootElement>
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">xml</OutDir>
+    </CXX_Tree_Mapping_Rule>
+    <CXX_Tree_Mapping_Rule Include="xml\group.xsd">
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">xml</OutDir>
+      <GenSerialization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</GenSerialization>
+      <GenDoxygen Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</GenDoxygen>
+      <GenSerialization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenSerialization>
+      <GenDoxygen Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GenDoxygen>
+      <RootElement Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </RootElement>
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">xml</OutDir>
+    </CXX_Tree_Mapping_Rule>
+    <CXX_Tree_Mapping_Rule Include="xml\minion.xsd">
+      <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">xml</OutDir>
+      <GenSerialization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenSerialization>
+    </CXX_Tree_Mapping_Rule>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="xml\frame_info.xsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

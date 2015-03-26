@@ -58,6 +58,18 @@
 // XQilla includes
 #include <xqilla/xqilla-dom3.hpp>
 
+// XSD Codesynthesis generated stubs includes
+#include "xml/group.hxx"
+#include "xml/frame_info.hxx"
+#include "xml/minion.hxx"
+
+// Xalan includes
+#include <xalanc/Include/PlatformDefinitions.hpp>
+#include <xalanc/XalanTransformer/XalanTransformer.hpp>
+#include <xalanc/XSLT/XSLTInputSource.hpp>
+#include <xalanc/XSLT/XSLTResultTarget.hpp>
+#include <xalanc/XalanDOM/XalanDOMString.hpp>
+
 // Util includes
 #include "util.h"
 
@@ -67,6 +79,12 @@ using namespace boost::filesystem;
 using namespace xercesc;
 //XERCES_CPP_NAMESPACE_USE
 			
+XALAN_USING_XERCES(XMLPlatformUtils)
+XALAN_USING_XALAN(XalanTransformer)
+XALAN_USING_XALAN(XSLTInputSource)
+XALAN_USING_XALAN(XSLTResultTarget)
+XALAN_USING_XALAN(XalanDOMString)
+
 using std::cerr;
 
 #define MAX_XPATH_EXPRESSION_SIZE 300
@@ -111,6 +129,66 @@ void set_labels(cv::Mat& im, cv::Rect r, std::string label_top, std::string labe
     cv::putText(im, label_bottom, pt_bottom, fontface, scale, color, thickness, 8);
 }
 
+void serialize_group() {
+	std::istringstream agent_smith(
+	  "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>"
+	  "<minion xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "
+	  "xsi:noNamespaceSchemaLocation=\"xml/minion.xsd\" loyalty=\"0.2\">"
+	  "<name>Agent Smith</name>"
+	  "<rank>Member of Minion Staff</rank>"
+	  "<serial>2</serial>"
+	  "</minion>");
+
+	std::auto_ptr<minion> m(NULL);
+
+	try {
+	  m = minion_(agent_smith);
+	} catch (const xml_schema::exception& e) {
+	  std::cerr << e << std::endl;
+	  return;
+	}
+
+	std::cout << "Name: " << m->name() << std::endl
+          << "Loyalty: " << m->loyalty() << std::endl
+          << "Rank: " << m->rank() << std::endl
+          << "Serial number: " << m->serial() << std::endl;
+
+	minion m2("Salacious Crumb", "Senior Lackey", 1, 0.9);	
+	minion_(std::cout, m2);
+	
+	XMLPlatformUtils::Initialize ();
+
+	{
+	  // Choose a target.
+	  //
+	  auto_ptr<XMLFormatTarget> ft;
+
+	  //ft = auto_ptr<XMLFormatTarget> (new StdOutFormatTarget ());
+
+	  ft = auto_ptr<XMLFormatTarget> (new LocalFileFormatTarget ("output_minion.xml"));
+
+	  xml_schema::namespace_infomap map;
+
+	  //map[""].schema = "xml/minion.xsd";  
+
+	  // Write it out.
+	  //
+	  minion_ (*ft, m2, map, "UTF-8", xml_schema::flags::no_xml_declaration | xml_schema::flags::dont_pretty_print);
+
+	  ostringstream ss;
+	  string s;
+	  const string& tmp (ss.str ());
+
+		if (!tmp.empty () && tmp[0] == '\n')
+		  s.assign (tmp, 1, tmp.size () - 1);
+		else
+		  s = tmp;
+	}
+
+	XMLPlatformUtils::Terminate ();
+
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc < 8)
@@ -118,13 +196,16 @@ int main(int argc, char *argv[])
 		cout << currentDateTime()  << "Usage: humanActivitiesGTA.exe gt_xml_path frames_path generate_index_flag(1=true, 0=false, default=0) draw_frames_flag(1=true, 0=false, default=1) generate_roi_files(1=true, 0=false, default=0) generate_roi_videos(1=true, 0=false, default=0) compute_stip_videos(1=true, 0=false, default=0)\n";
 		return 1;
 	}
+
+	serialize_group();
 	
 	path gt_xml_path (argv[1]);
 	path frames_path (argv[2]);
 
 	try {
 		
-		XMLPlatformUtils::Initialize();		
+		XMLPlatformUtils::Initialize();
+		XalanTransformer::initialize();
 		XQillaPlatformUtils::initialize();
 
 	} catch (const XMLException& eXerces) {
@@ -182,16 +263,249 @@ int main(int argc, char *argv[])
 			//const DOMXPathNSResolver* resolver = document->createNSResolver(document->getDocumentElement());
 			//XQillaNSResolver* xqillaResolver = (XQillaNSResolver*)resolver;   
 			//xqillaResolver->addNamespaceBinding(X("xs"), X("http://www.w3.org/2001/XMLSchema"));		
-			//xqillaResolver->addNamespaceBinding(X("fn"), X("http://www.w3.org/2005/xpath-functions"));		
+			//xqillaResolver->addNamespaceBinding(X("fn"), X("http://www.w3.org/2005/xpath-functions"));
+
+			// 3. Create a XalanTransformer
+			XalanTransformer theXalanTransformer;
+			
+			// 4. Prepare the input and output sources
+			XSLTInputSource xmlIn(argv[1]);
+			XSLTInputSource xslIn("frame_info.xsl");			
+
+			//cout << currentDateTime()  << frames_path << " is a directory containing:\n";
+
+			typedef vector<path> vec;
+			vec v;
+
+			copy(directory_iterator(frames_path), directory_iterator(), back_inserter(v));			
 
 			if (strcmp(argv[3], "1") == 0) {
 			
-				// TODO Calculate frame indexes...
+				std::ostringstream frame_index_path;
+				frame_index_path << frames_path.string() << "\\frame_index" << "\0";
+				cout << currentDateTime()  << "frame_index_path: " << frame_index_path.str() << endl;
+
+				boost::filesystem::path frame_index_dir(frame_index_path.str());
+			
+				if(!exists(frame_index_dir)) {
+					if (boost::filesystem::create_directory(frame_index_dir)) {
+						cout << currentDateTime()  << "frame_index_dir created!" << endl;												
+					} else {
+						cout << currentDateTime()  << "Cannot create frame_index_dir!" << endl;
+						return 1;
+					}
+				}
+
+				for (vec::const_iterator it(v.begin()), it_end(v.end()); it != it_end; ++it)
+				{				
+					cout << currentDateTime()  << " filename: " << it->filename() << ", extension: " << it->extension() << endl;
+				
+					string file_extension = it->extension().string();
+
+					if(strcmp(file_extension.c_str(), frame_extension.c_str())==0) {
+						int frame_number = extract_frame_number_from_mask(it->filename().string());
+
+						cout << currentDateTime()  << " ------------------------------------------------------- " << endl;
+						cout << currentDateTime()  << " -------------- frame number: " << frame_number << " -------------- " << endl;
+						cout << currentDateTime()  << " ------------------------------------------------------- " << endl;
+
+						cout << currentDateTime()  << " Generating index for frame..." << endl;								
+
+						sprintf(frame_index_filename, "\\image%05d.xml\0", frame_number);
+
+						cout << currentDateTime()  << "frame_index filename: " << frame_index_filename << endl;
+
+						std::ostringstream frame_index_file_path;
+						frame_index_file_path << frame_index_dir.string() << frame_index_filename;
+						cout << currentDateTime()  << "frame_index_file_path: " << frame_index_file_path.str() << endl;
+
+						XSLTResultTarget xmlOut(frame_index_file_path.str().c_str());
+
+						sprintf(frame_number_string, "%d\0", frame_number);
+						cout << currentDateTime()  << "frame number string: " << frame_number_string << endl;						
+
+						const XalanDOMString key("frame_number");
+						const XalanDOMString expression(frame_number_string);
+
+						theXalanTransformer.setStylesheetParam(key, expression);	
+						theXalanTransformer.setIndent(4);
+
+						int theResult = theXalanTransformer.transform(xmlIn, xslIn, xmlOut);
+	
+						//cout << currentDateTime()  << "Result of Transformation is " << theResult << "\n";						
+					}
+				}
 			}
 
 			if (strcmp(argv[4], "1") == 0 || strcmp(argv[5], "1") == 0) {
 
-				// TODO Calculate rois...				
+				std::ostringstream frame_index_path;
+				frame_index_path << frames_path.string() << "\\frame_index" << "\0";
+				//cout << currentDateTime()  << "frame_index_path: " << frame_index_path.str() << endl;
+
+				boost::filesystem::path frame_index_dir(frame_index_path.str());
+
+				for (vec::const_iterator it(v.begin()), it_end(v.end()); it != it_end; ++it)
+				{				
+					//cout << currentDateTime()  << " filename: " << it->filename() << ", extension: " << it->extension() << endl;
+				
+					string frame_filename = it->string();
+					string file_extension = it->extension().string();
+
+					if(strcmp(file_extension.c_str(), frame_extension.c_str())==0) {
+						int frame_number = extract_frame_number_from_mask(it->filename().string());
+
+						//cout << currentDateTime()  << " ------------------------------------------------------- " << endl;
+						//cout << currentDateTime()  << " -------------- frame number: " << frame_number << " -------------- " << endl;
+						//cout << currentDateTime()  << " ------------------------------------------------------- " << endl;
+
+						//cout << currentDateTime()  << " Reading index for frame... " << endl;						
+
+						sprintf(frame_index_filename, "\\%d.xml\0", frame_number);
+						//cout << currentDateTime()  << "frame_index filename: " << frame_index_filename << endl;
+
+						std::ostringstream frame_index_file_path;
+						frame_index_file_path << frame_index_path.str() << frame_index_filename;
+						//cout << currentDateTime()  << "parsing frame_index_file_path: " << frame_index_file_path.str() << endl;						
+
+						DOMDocument* frame_info_document = xmlParser->parseURI(frame_index_file_path.str().c_str());
+
+						auto_ptr<frame_info_t> fi (frame_info (*frame_info_document));
+
+						//cout << currentDateTime()  << endl << "frame_info id: " << fi->frame_id() << ", roi count: " << distance(fi->roi ().begin (), fi->roi ().end ()) << endl;
+
+						sprintf(frame_number_string, "%05d\0", frame_number);
+						//cout << currentDateTime()  << "frame number string: " << frame_number_string << endl;
+
+						Mat a;							
+						//cout << currentDateTime()  << "Showing frame: " << frame_number << endl;
+						a = imread(frame_filename);
+
+						if(!a.data)
+						{
+							cout << currentDateTime()  <<  "No image data" << endl;
+						} else {				   
+							//cout << currentDateTime()  <<  "Image data!" << endl;														
+
+							int roi_counter = 0;
+
+							if (strcmp(argv[5], "1") == 0) {
+								for (frame_info_t::roi_const_iterator ri (fi->roi ().begin ()); ri != fi->roi ().end (); ++ri)
+								{
+									roi_counter++;																								
+
+									sprintf(roi_label_string, "Person%d\0", ri->person_id());								
+
+									cv::Rect rect (Point(ri->bb_ul_x(), ri->bb_ul_y()), Point(ri->bb_lr_x(), ri->bb_lr_y()));
+
+									std::ostringstream full_roi_dir_path;
+									full_roi_dir_path << frames_path.string() << "\\roi\\" << roi_label_string << "\\" << ri->profile_type() << "\\frames\\full" << "\0";
+									//cout << currentDateTime()  << "full_roi_dir_path: " << full_roi_dir_path.str() << endl;
+
+									std::ostringstream bg_full_roi_dir_path;
+									bg_full_roi_dir_path << frames_path.string() << "\\roi\\" << roi_label_string << "\\" << ri->profile_type() << "\\frames\\bg" << "\0";
+									//cout << currentDateTime()  << "full_roi_dir_path: " << full_roi_dir_path.str() << endl;
+
+									boost::filesystem::path full_roi_dir(full_roi_dir_path.str());
+									boost::filesystem::path bg_full_roi_dir(bg_full_roi_dir_path.str());
+			
+									if(!exists(full_roi_dir)) {
+										if (boost::filesystem::create_directories(full_roi_dir)) {
+											//cout << currentDateTime()  << "full_roi_dir created!" << endl;												
+										} else {
+											//cout << currentDateTime()  << "Cannot create full_roi_dir!" << endl;
+											return 1;
+										}
+									}
+
+									if(!exists(bg_full_roi_dir)) {
+										if (boost::filesystem::create_directories(bg_full_roi_dir)) {
+											//cout << currentDateTime()  << "bg_full_roi_dir created!" << endl;												
+										} else {
+											//cout << currentDateTime()  << "Cannot create bg_full_roi_dir!" << endl;
+											return 1;
+										}
+									}
+								
+									sprintf(roi_frame_filename, "image%05d.png\0", frame_number);									
+
+									std::ostringstream full_roi_frame_path;
+									full_roi_frame_path << full_roi_dir.string() << "\\" << roi_frame_filename << "\0";
+									//cout << currentDateTime()  << "full_roi_frame_path: " << full_roi_frame_path.str() << endl;									
+
+									std::ostringstream bg_full_roi_frame_path;
+									bg_full_roi_frame_path << bg_full_roi_dir.string() << "\\" << roi_frame_filename << "\0";
+									//cout << currentDateTime()  << "full_roi_frame_path: " << full_roi_frame_path.str() << endl;
+
+									imwrite(bg_full_roi_frame_path.str() , a);
+
+									Mat mask = Mat::zeros(a.size(), CV_8UC1);								
+									mask(rect) = 255;
+									Mat full_roi;
+									a.copyTo(full_roi, mask);
+
+									imwrite(full_roi_frame_path.str(), full_roi);
+
+									std::ostringstream single_roi_dir_path;
+									single_roi_dir_path << frames_path.string() << "\\roi\\" << roi_label_string << "\\" << ri->profile_type() << "\\frames\\single" << "\0";
+									//cout << currentDateTime()  << "single_roi_dir_path: " << single_roi_dir_path.str() << endl;
+
+									boost::filesystem::path single_roi_dir(single_roi_dir_path.str());
+			
+									if(!exists(single_roi_dir)) {
+										if (boost::filesystem::create_directories(single_roi_dir)) {
+											//cout << currentDateTime()  << "single_roi_dir created!" << endl;												
+										} else {
+											//cout << currentDateTime()  << "Cannot create single_roi_dir!" << endl;
+											return 1;
+										}
+									}
+
+									std::ostringstream single_roi_frame_path;
+									single_roi_frame_path << single_roi_dir.string() << "\\" << roi_frame_filename << "\0";
+									//cout << currentDateTime()  << "single_roi_frame_path: " << single_roi_frame_path.str() << endl;
+
+									Mat single_roi = a(rect);
+
+									imwrite(single_roi_frame_path.str(), single_roi);
+								}
+
+								cout << currentDateTime()  << "Saved rois for frame " << frame_number << "..." << endl;
+
+								roi_counter = 0;
+							}							
+
+							if (strcmp(argv[4], "1") == 0) {
+								namedWindow("HAGTA", CV_WINDOW_AUTOSIZE);
+
+								for (frame_info_t::roi_const_iterator ri (fi->roi ().begin ()); ri != fi->roi ().end (); ++ri)
+								{
+									roi_counter++;	
+
+									cv::Rect rect (Point(ri->bb_ul_x(), ri->bb_ul_y()), Point(ri->bb_lr_x(), ri->bb_lr_y()));
+
+									Scalar roi_color (100+(roi_counter*50), 250-(roi_counter*50), roi_counter*50);
+
+									set_labels(a, rect, ri->profile_type(), roi_label_string, ri->person_description(), roi_counter, roi_color);
+
+									rectangle(
+										a, 
+										Point(ri->bb_ul_x(), ri->bb_ul_y()), 
+										Point(ri->bb_lr_x(), ri->bb_lr_y()), 
+										roi_color, 
+										2
+									);
+								}
+
+								sprintf(frame_number_string, "FRAME %05d\0", frame_number);
+								putText(a, frame_number_string , Point(5, 25), FONT_HERSHEY_SIMPLEX, 1, Scalar(0,0,255), 3);
+
+								imshow("HAGTA", a);
+								waitKey(1000/40);
+							}							
+						}
+					}
+				}							
 			}
 
 			if (strcmp(argv[6], "1") == 0 || strcmp(argv[7], "1") == 0) {
@@ -333,7 +647,7 @@ int main(int argc, char *argv[])
 								}								
 
 								if (strcmp(argv[7], "1") == 0) {									
-									// TODO Compute STIP descriptors ...
+									// TODO Compute STIP descriptors...
 								}
 							}
 						}
@@ -359,8 +673,10 @@ int main(int argc, char *argv[])
 		cout << currentDateTime()  << ex.what() << '\n';
 	}
 
-	XQillaPlatformUtils::terminate();		
-	XMLPlatformUtils::Terminate();	
+	XQillaPlatformUtils::terminate();	
+	XalanTransformer::terminate();
+	XMLPlatformUtils::Terminate();
+	XalanTransformer::ICUCleanUp();
 
 	return 0;
 }
