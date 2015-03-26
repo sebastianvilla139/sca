@@ -1045,6 +1045,327 @@ frame_info (::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d,
     "");
 }
 
+#include <ostream>
+#include <xsd/cxx/tree/error-handler.hxx>
+#include <xsd/cxx/xml/dom/serialization-source.hxx>
+
+void
+frame_info (::std::ostream& o,
+            const ::frame_info_t& s,
+            const ::xml_schema::namespace_infomap& m,
+            const ::std::string& e,
+            ::xml_schema::flags f)
+{
+  ::xsd::cxx::xml::auto_initializer i (
+    (f & ::xml_schema::flags::dont_initialize) == 0);
+
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::frame_info (s, m, f));
+
+  ::xsd::cxx::tree::error_handler< char > h;
+
+  ::xsd::cxx::xml::dom::ostream_format_target t (o);
+  if (!::xsd::cxx::xml::dom::serialize (t, *d, e, h, f))
+  {
+    h.throw_if_failed< ::xsd::cxx::tree::serialization< char > > ();
+  }
+}
+
+void
+frame_info (::std::ostream& o,
+            const ::frame_info_t& s,
+            ::xml_schema::error_handler& h,
+            const ::xml_schema::namespace_infomap& m,
+            const ::std::string& e,
+            ::xml_schema::flags f)
+{
+  ::xsd::cxx::xml::auto_initializer i (
+    (f & ::xml_schema::flags::dont_initialize) == 0);
+
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::frame_info (s, m, f));
+  ::xsd::cxx::xml::dom::ostream_format_target t (o);
+  if (!::xsd::cxx::xml::dom::serialize (t, *d, e, h, f))
+  {
+    throw ::xsd::cxx::tree::serialization< char > ();
+  }
+}
+
+void
+frame_info (::std::ostream& o,
+            const ::frame_info_t& s,
+            ::xercesc::DOMErrorHandler& h,
+            const ::xml_schema::namespace_infomap& m,
+            const ::std::string& e,
+            ::xml_schema::flags f)
+{
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::frame_info (s, m, f));
+  ::xsd::cxx::xml::dom::ostream_format_target t (o);
+  if (!::xsd::cxx::xml::dom::serialize (t, *d, e, h, f))
+  {
+    throw ::xsd::cxx::tree::serialization< char > ();
+  }
+}
+
+void
+frame_info (::xercesc::XMLFormatTarget& t,
+            const ::frame_info_t& s,
+            const ::xml_schema::namespace_infomap& m,
+            const ::std::string& e,
+            ::xml_schema::flags f)
+{
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::frame_info (s, m, f));
+
+  ::xsd::cxx::tree::error_handler< char > h;
+
+  if (!::xsd::cxx::xml::dom::serialize (t, *d, e, h, f))
+  {
+    h.throw_if_failed< ::xsd::cxx::tree::serialization< char > > ();
+  }
+}
+
+void
+frame_info (::xercesc::XMLFormatTarget& t,
+            const ::frame_info_t& s,
+            ::xml_schema::error_handler& h,
+            const ::xml_schema::namespace_infomap& m,
+            const ::std::string& e,
+            ::xml_schema::flags f)
+{
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::frame_info (s, m, f));
+  if (!::xsd::cxx::xml::dom::serialize (t, *d, e, h, f))
+  {
+    throw ::xsd::cxx::tree::serialization< char > ();
+  }
+}
+
+void
+frame_info (::xercesc::XMLFormatTarget& t,
+            const ::frame_info_t& s,
+            ::xercesc::DOMErrorHandler& h,
+            const ::xml_schema::namespace_infomap& m,
+            const ::std::string& e,
+            ::xml_schema::flags f)
+{
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::frame_info (s, m, f));
+  if (!::xsd::cxx::xml::dom::serialize (t, *d, e, h, f))
+  {
+    throw ::xsd::cxx::tree::serialization< char > ();
+  }
+}
+
+void
+frame_info (::xercesc::DOMDocument& d,
+            const ::frame_info_t& s,
+            ::xml_schema::flags)
+{
+  ::xercesc::DOMElement& e (*d.getDocumentElement ());
+  const ::xsd::cxx::xml::qualified_name< char > n (
+    ::xsd::cxx::xml::dom::name< char > (e));
+
+  if (n.name () == "frame_info" &&
+      n.namespace_ () == "")
+  {
+    e << s;
+  }
+  else
+  {
+    throw ::xsd::cxx::tree::unexpected_element < char > (
+      n.name (),
+      n.namespace_ (),
+      "frame_info",
+      "");
+  }
+}
+
+::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument >
+frame_info (const ::frame_info_t& s,
+            const ::xml_schema::namespace_infomap& m,
+            ::xml_schema::flags f)
+{
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::xsd::cxx::xml::dom::serialize< char > (
+      "frame_info",
+      "",
+      m, f));
+
+  ::frame_info (*d, s, f);
+  return d;
+}
+
+void
+operator<< (::xercesc::DOMElement& e, const frame_info_t& i)
+{
+  e << static_cast< const ::xml_schema::type& > (i);
+
+  // frame_id
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "frame_id",
+        e));
+
+    s << i.frame_id ();
+  }
+
+  // roi
+  //
+  for (frame_info_t::roi_const_iterator
+       b (i.roi ().begin ()), n (i.roi ().end ());
+       b != n; ++b)
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "roi",
+        e));
+
+    s << *b;
+  }
+}
+
+void
+operator<< (::xercesc::DOMElement& e, const roi& i)
+{
+  e << static_cast< const ::xml_schema::type& > (i);
+
+  // profile_type
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "profile_type",
+        e));
+
+    s << i.profile_type ();
+  }
+
+  // person_id
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "person_id",
+        e));
+
+    s << i.person_id ();
+  }
+
+  // behaviour_type
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "behaviour_type",
+        e));
+
+    s << i.behaviour_type ();
+  }
+
+  // person_description
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "person_description",
+        e));
+
+    s << i.person_description ();
+  }
+
+  // bb_ul_x
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "bb_ul_x",
+        e));
+
+    s << i.bb_ul_x ();
+  }
+
+  // bb_ul_y
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "bb_ul_y",
+        e));
+
+    s << i.bb_ul_y ();
+  }
+
+  // bb_lr_x
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "bb_lr_x",
+        e));
+
+    s << i.bb_lr_x ();
+  }
+
+  // bb_lr_y
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "bb_lr_y",
+        e));
+
+    s << i.bb_lr_y ();
+  }
+
+  // bb_or
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "bb_or",
+        e));
+
+    s << i.bb_or ();
+  }
+
+  // bb_gp_x
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "bb_gp_x",
+        e));
+
+    s << i.bb_gp_x ();
+  }
+
+  // bb_gp_y
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "bb_gp_y",
+        e));
+
+    s << i.bb_gp_y ();
+  }
+
+  // bb_gp_or
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "bb_gp_or",
+        e));
+
+    s << i.bb_gp_or ();
+  }
+}
+
 #include <xsd/cxx/post.hxx>
 
 // Begin epilogue.

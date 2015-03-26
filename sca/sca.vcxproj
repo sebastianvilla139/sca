@@ -126,15 +126,19 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />    
-    <ClCompile Include="util.cpp" /> 
-	<ClCompile Include="xml\frame_info.cxx" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="stip\ActionHOGLibs.cpp" />
+    <ClCompile Include="stip\ActionHOGUtils.cpp" />
+    <ClCompile Include="util.cpp" />
+    <ClCompile Include="xml\frame_info.cxx" />
     <ClCompile Include="xml\group.cxx" />
-    <ClCompile Include="xml\minion.cxx" />	
+    <ClCompile Include="xml\minion.cxx" />
   </ItemGroup>
-  <ItemGroup>    
+  <ItemGroup>
+    <ClInclude Include="stip\ActionHOGLibs.h" />
+    <ClInclude Include="stip\ActionHOGUtils.h" />
     <ClInclude Include="util.h" />
-	<ClInclude Include="xml\frame_info.hxx" />
+    <ClInclude Include="xml\frame_info.hxx" />
     <ClInclude Include="xml\group.hxx" />
     <ClInclude Include="xml\minion.hxx" />
   </ItemGroup>

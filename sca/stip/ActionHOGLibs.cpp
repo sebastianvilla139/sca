@@ -1,126 +1,50 @@
 #include <iostream>
 #include "ActionHOGUtils.h"
 #include "ActionHOGLibs.h"
+#include "opencv2\nonfree\nonfree.hpp"
+
 
 using std::cout;
 using std::cerr;
 
-ActionHOG::ActionHOG(string detName, string featChan, int imgNGrids, int imgNBins,
-					 int mhiNGrids, int mhiNBins, int optNGrids, int optNBins, bool flag) {
-	det = detName;
+
+ActionHOG::ActionHOG() {
+	det = "SURF";
 	
-	chan = featChan;
+	chan = "IMG_MHI_OPT";
 	imgflag = mhiflag = optflag = true;
 	
-	vis = flag;
+	vis = true;
 
-	imgngs = imgNGrids; imgnbs = imgNBins;
-	mhings = mhiNGrids; mhinbs = mhiNBins;
-	optngs = optNGrids; optnbs = optNBins;
+	imgngs = 4; imgnbs = 8;
+	mhings = 4; mhinbs = 8;
+	optngs = 4; optnbs = 8;
 
 	imgHOGDims = imgngs*imgngs*imgnbs;
 	mhiHOGDims = mhings*mhings*mhinbs;
 	optHOGDims = optngs*optngs*optnbs;
 	
 	fp = NULL;
+
+	fr_p = 0; //initialize procesed frames
 }
+
 
 
 ActionHOG::~ActionHOG() {
 	vid.release();
-
-	fclose(fp); fp = NULL;
 }
 
 
-int ActionHOG::check(string vidFileName, string featFileName) {
-	if (!vid.open(vidFileName)) {
-		cerr << "Cannot open the video file: " << vidFileName << "!\n";
-		system("pause");
-		exit(0);
-	}
-
-	fp = fopen(featFileName.c_str(), "w");
-	if (fp == NULL) {
-		cerr << "Cannot open the feature file" << featFileName << "!\n";
-		system("pause");
-		exit(0);
-	}
-
-	setVidProp( (int)vid.get(CV_CAP_PROP_FRAME_COUNT),
-			    (int)vid.get(CV_CAP_PROP_FRAME_HEIGHT),
-			    (int)vid.get(CV_CAP_PROP_FRAME_WIDTH) );
-
-	writeHeader();
-
-	return 1;
-}
-
-
-int ActionHOG::writeHeader() {
-	fprintf(fp, "# frameWidth: %d frameHeight: %d frameNumber: %d\n", width, height, nframes);
-	fprintf(fp, "# detector: %s channel: %s\n", det.c_str(), chan.c_str());
-
-	if (chan == "IMG") {
-		mhiflag = optflag = false;
-		fprintf(fp, "# t x y s imgHOG(%d)\n", imgHOGDims);
-	} else if (chan == "MHI") {
-		imgflag = optflag = false;
-		fprintf(fp, "# t x y s mhiHOG(%d)\n", mhiHOGDims);
-	} else if (chan == "OPT") {
-		imgflag = mhiflag = false;
-		fprintf(fp, "# t x y s optHOG(%d)\n", optHOGDims);
-	} else if (chan == "IMG_MHI") {
-		optflag = false;
-		fprintf(fp, "# t x y s imgHOG(%d) mhiHOG(%d)\n", imgHOGDims, mhiHOGDims);
-	} else if (chan == "IMG_OPT") {
-		mhiflag = false;
-		fprintf(fp, "# t x y s imgHOG(%d) optHOG(%d)\n", imgHOGDims, optHOGDims);
-	} else if (chan == "MHI_OPT") {
-		imgflag = false;
-		fprintf(fp, "# t x y s mhiHOG(%d) optHOG(%d)\n", mhiHOGDims, optHOGDims);
-	} else if (chan == "IMG_MHI_OPT") {
-		fprintf(fp, "# t x y s imgHOG(%d) mhiHOG(%d) optHOG(%d)\n", imgHOGDims, mhiHOGDims, optHOGDims);	
-	} else {
-		cerr << "Feature channel: " << chan << " is not available!\n";
-		system("pause");
-		exit(0);
-	}
-
-	return 1;
-}
-
-
-int ActionHOG::setVidProp(int f, int h, int w) {
-	nframes = f;
-	height = h;
-	width = w;
-
-	return 1;
-}
 
 
 int ActionHOG::comp() {
-	// source, preceding, and current frames
-	Mat src, pre, cur;
-	// motion history images with different data types
-	Mat mhi8U, mhi32F; 
+
 	// number of detected points
 	int count = 0;
 	// time counter at starting point
 	double stimer = (double)getTickCount();
-
-	// do the job
-	for (int i = 0; i < nframes; ++i) {
-		// average speed and total number of points in every 100 frames
-		if (i % 100 == 0) {
-			double timer = (getTickCount() - stimer) / getTickFrequency();
-			cout << "at frame: " << i << " -> speed: avg fps = " << i / timer << " -> points: total num = " << count << "\n";
-		}
-
-		if (!vid.read(src))
-			continue;
-		
+	
 		if (src.channels() == 3)
 			cvtColor(src, cur, CV_RGB2GRAY);
 		else
@@ -135,56 +59,96 @@ int ActionHOG::comp() {
 		// if no point detected in a certain frame
 		if (srcKeys.size() == 0) {
 			cur.copyTo(pre);
-			getMotionHistoryImage(i, pre, cur, mhi8U, mhi32F);
+			getMotionHistoryImage(fr_p, pre, cur, mhi8U, mhi32F);
 
-			continue;
 		}
-
+		
 		// update MHI
-		getMotionHistoryImage(i, pre, cur, mhi8U, mhi32F);
+		getMotionHistoryImage(fr_p, pre, cur, mhi8U, mhi32F);
 
 		// filter interest points by MHI and OPT
-		vector<KeyPoint> dstKeys;
-		filterKeysByMotion(srcKeys, dstKeys, mhi8U, pre, cur, src);
+		dstKeys.clear();
+		//filterKeysByMotion(srcKeys, dstKeys, mhi8U, pre, cur, src);
 
-		// update the total number
-		count += (int)dstKeys.size();
+		dstKeys = srcKeys;
+
+		// filter by BGS mask
+		filter_Fmask();
+
+	    // update the total number
+		count += (int)dstKeysf.size();
 		
 		// compute HOG for image channel
 		if (imgflag)
-			getImageHOG(pre, dstKeys, imgHOG);
+			getImageHOG(pre, dstKeysf, imgHOG);
 
 		// compute HOG for MHI channel
 		if (mhiflag)
-			getMotionHistoryImageHOG(mhi8U, dstKeys, mhiHOG);
+			getMotionHistoryImageHOG(mhi8U, dstKeysf, mhiHOG);
 
 		// compute HOG for OPT channel
 		if (optflag)
-			getOpticalFlowHOG(pre, cur, dstKeys, optHOG);
+			getOpticalFlowHOG(pre, cur, dstKeysf, optHOG);
 
 		// update preceding frame
 		cur.copyTo(pre);
 
 		// write keys and descriptors
-		writeKeyDesc(i, dstKeys);
-	}
+		writeKeyDesc(fr_p, dstKeysf);
+		
+		// increase number of processed frames
+		fr_p++;
 
 	return 1;
+}
+
+
+void ActionHOG::filter_Fmask(){	
+	Mat imgDstKeys = src.clone();
+
+	dstKeysf.clear();
+	kpts_roi.clear();
+
+	for(int i=0; i<dstKeys.size(); i++){
+		int v = (int)Rmask.at<uchar>(int(dstKeys[i].pt.y),int(dstKeys[i].pt.x));
+
+		//circle(imgDstKeys, dstKeys[i].pt, (int)dstKeys[i].size/2, Scalar(0, 0, 255), 2);
+		if(v!=0){
+			dstKeysf.push_back(dstKeys[i]);
+			kpts_roi.push_back(v);
+		}
+	}
+
+	cout<<"Keys: "<<dstKeysf.size()<<std::endl;
+
+	// visualize keys
+	if (vis) {
+		
+		int nDstKeys = dstKeysf.size();
+
+		for (int i = 0; i < nDstKeys; ++i) {
+			// draw circle
+			circle(imgDstKeys, dstKeysf[i].pt, (int)dstKeysf[i].size/2, Scalar(0, 255, 0), 2);
+		}
+
+		imshow("keys", imgDstKeys);
+	}
 }
 
 
 int ActionHOG::detKeys(const Mat &img, vector<KeyPoint> &keys) {
 	// SURF detector with no orientation normalization
 	if (det == "SURF") {
-		double hessThresh = 400.0;
-		int nOctaves = 3;
-		int nLayers = 4;
-		bool extended = false;
-		bool upright = true;
+		double hessThresh = 400.0;  // por defecto 400;
+		int nOctaves = 3;  // por defecto 3
+		int nLayers = 2;
+		bool extended = true;
+		bool upright = true;  // por defecto true
 		SURF detector(hessThresh, nOctaves, nLayers, extended, upright);
 		Mat mask = Mat::ones(img.rows, img.cols, CV_8UC1);
 		detector(img, mask, keys);
-
+		
+		
 	} else {
 		cerr << det << " is not an available detector!\n";
 		system("pause");
@@ -205,6 +169,7 @@ int ActionHOG::getMotionHistoryImage(int idx, const Mat &pre, const Mat &cur, Ma
 
 	double timestamp = (double)idx;
 	updateMotionHistory(diff, mhi32F, timestamp, MHI_DURATION);
+	
 
 	if (timestamp < MHI_DURATION)
 		mhi32F.convertTo(mhi8U, CV_8UC1, 255.0/MHI_DURATION, (timestamp - MHI_DURATION)*255.0/MHI_DURATION);
@@ -243,7 +208,7 @@ int ActionHOG::filterKeysByMotion(const vector<KeyPoint> &srcKeys, vector<KeyPoi
 		int iy = (int)(srcKeys[i].pt.y + 0.5);
 		
 		if (mei.at<uchar>(iy, ix) == 0)
-			continue;
+			//continue;
 		
 		tempKeys.push_back(srcKeys[i]);
 	}
@@ -287,36 +252,36 @@ int ActionHOG::filterKeysByMotion(const vector<KeyPoint> &srcKeys, vector<KeyPoi
 		dstKeys.push_back(tempKeys[i]);
 	}
 
-	// visualize keys
-	if (vis) {
-		Mat imgDstKeys = src.clone();
-		int nDstKeys = dstKeys.size();
-		
-		for (int i = 0; i < nDstKeys; ++i) {
-			// draw circle
-			circle(imgDstKeys, dstKeys[i].pt, (int)dstKeys[i].size/2, Scalar(0, 0, 255), 2);
-			
-			// draw arrow line
-			line(imgDstKeys, optPre[i], optCur[i], Scalar(0, 255, 0));
-			
-			double dx = optCur[i].x - optPre[i].x;
-			double dy = optCur[i].y - optPre[i].y;
-			double len = 0.3 * std::sqrt(dx*dx + dy*dy);
-			double ang = atan2(optPre[i].y - optCur[i].y, optPre[i].x - optCur[i].x);
-			Point2f temp;
-			
-			temp.x = (float)(optCur[i].x + len * std::cos(ang + 3.1416/4));
-			temp.y = (float)(optCur[i].y + len * std::sin(ang + 3.1416/4));
-			line(imgDstKeys, temp, optCur[i], Scalar(0, 255, 0));
+	//// visualize keys
+	//if (vis) {
+	//	Mat imgDstKeys = src.clone();
+	//	int nDstKeys = dstKeys.size();
+	//	
+	//	for (int i = 0; i < nDstKeys; ++i) {
+	//		// draw circle
+	//		circle(imgDstKeys, dstKeys[i].pt, (int)dstKeys[i].size/2, Scalar(0, 0, 255), 2);
+	//		
+	//		// draw arrow line
+	//		line(imgDstKeys, optPre[i], optCur[i], Scalar(0, 255, 0));
+	//		
+	//		double dx = optCur[i].x - optPre[i].x;
+	//		double dy = optCur[i].y - optPre[i].y;
+	//		double len = 0.3 * std::sqrt(dx*dx + dy*dy);
+	//		double ang = atan2(optPre[i].y - optCur[i].y, optPre[i].x - optCur[i].x);
+	//		Point2f temp;
+	//		
+	//		temp.x = (float)(optCur[i].x + len * std::cos(ang + 3.1416/4));
+	//		temp.y = (float)(optCur[i].y + len * std::sin(ang + 3.1416/4));
+	//		line(imgDstKeys, temp, optCur[i], Scalar(0, 255, 0));
 
-			temp.x = (float)(optCur[i].x + len * std::cos(ang - 3.1416/4));
-			temp.y = (float)(optCur[i].y + len * std::sin(ang - 3.1416/4));
-			line(imgDstKeys, temp, optCur[i], Scalar(0, 255, 0));
-		}
+	//		temp.x = (float)(optCur[i].x + len * std::cos(ang - 3.1416/4));
+	//		temp.y = (float)(optCur[i].y + len * std::sin(ang - 3.1416/4));
+	//		line(imgDstKeys, temp, optCur[i], Scalar(0, 255, 0));
+	//	}
 
-		imshow("keys", imgDstKeys);
-		waitKey(fdur);
-	}
+	//	imshow("keys", imgDstKeys);
+	//	waitKey(fdur);
+	//}
 
 	return 1;
 }
@@ -458,30 +423,63 @@ int ActionHOG::getOpticalFlowHOG(const Mat &pre, const Mat &cur, const vector<Ke
 
 int ActionHOG::writeKeyDesc(int idx, const vector<KeyPoint> &keys) {
 	int nKeys = keys.size();
-	for (int i = 0; i < nKeys; ++i) {
-		fprintf(fp, "%d ", idx);
-		fprintf(fp, "%f %f %f ", keys[i].pt.x, keys[i].pt.y, keys[i].size);
 
-		if (imgflag) {
-			const float *pimg = imgHOG.ptr<float>(i);
-			for (int j = 0; j < imgHOGDims; ++j)
-				fprintf(fp, "%f ", pimg[j]);
+	char save_path[250], fr[5], bbox[5];
+
+	itoa(fr_idx,fr,10);
+
+	double d1, d2, d3, d4;
+
+	for (int i=0; i<Nbbox;i++){
+
+		itoa(i,bbox,10);
+
+		//make path to save LBSP images
+		strcpy(save_path,"C:\\Users\\Santiago\\Desktop\\People_Dbase\\STIP\\");
+		strcat(save_path,vidname);
+		strcat(save_path,"_");
+		strcat(save_path,fr);
+		strcat(save_path,"_");
+		strcat(save_path,bbox);
+		strcat(save_path,".txt");
+
+		//open file
+		fp = fopen(save_path,"w+");
+
+		for (int k=0; k<kpts_roi.size();k++){
+			if(kpts_roi[k]==i+1){
+
+				//write stip coordinates and ratio
+				fprintf(fp, "%f %f %f ", keys[k].pt.x, keys[k].pt.y, keys[k].size);
+
+				//write distances to "interest points"
+				d1 = sqrt((keys[k].pt.x + 219)*(keys[k].pt.x + 219) +(keys[k].pt.y + 159)*(keys[k].pt.y + 159) );
+				d2 = sqrt((keys[k].pt.x + 20)*(keys[k].pt.x + 20) + (keys[k].pt.y + 205)*(keys[k].pt.y + 205) );
+				d3 = sqrt((keys[k].pt.x + 75)*(keys[k].pt.x + 75) +(keys[k].pt.y + 182)*(keys[k].pt.y + 182) );
+				d4 = sqrt((keys[k].pt.x + 350)*(keys[k].pt.x + 350) +(keys[k].pt.y + 127)*(keys[k].pt.y + 127) );
+				fprintf(fp,"%f %f %f %f ", d1, d2, d3, d4);
+
+				if (imgflag) {
+					const float *pimg = imgHOG.ptr<float>(k);
+					for (int j = 0; j < imgHOGDims; ++j)
+						fprintf(fp, "%f ", pimg[j]);
+				}
+
+				if (mhiflag) {
+					const float *pmhi = mhiHOG.ptr<float>(k);
+					for (int j = 0; j < mhiHOGDims; ++j)
+						fprintf(fp, "%f ", pmhi[j]);
+				}
+
+				if (optflag) {
+					const float *popt = optHOG.ptr<float>(k);
+					for (int j = 0; j < optHOGDims; ++j)
+						fprintf(fp, "%f ", popt[j]);
+				}
+				fprintf(fp,"\n");
+			}
 		}
-
-		if (mhiflag) {
-			const float *pmhi = mhiHOG.ptr<float>(i);
-			for (int j = 0; j < mhiHOGDims; ++j)
-				fprintf(fp, "%f ", pmhi[j]);
-		}
-
-		if (optflag) {
-			const float *popt = optHOG.ptr<float>(i);
-			for (int j = 0; j < optHOGDims; ++j)
-				fprintf(fp, "%f ", popt[j]);
-		}
-
-		fprintf(fp, "\n");
+		fclose(fp);
 	}
-
 	return 1;
 }

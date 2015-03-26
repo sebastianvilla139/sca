@@ -2,12 +2,12 @@
 #define ACTION_HOG_LIBS_H
 
 #include <string>
-
 #include "opencv2/core/core.hpp"
 #include "opencv2/video/video.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/features2d/features2d.hpp"
+
 
 using std::string;
 
@@ -32,18 +32,9 @@ const int fdur = 20;
 
 class ActionHOG {
 public:
-	ActionHOG(string detName, string featChan, int imgNGrids, int imgNBins,
-			  int mhiNGrids, int mhiNBins, int optNGrids, int optNBins, bool flag);
+	ActionHOG();
 
 	~ActionHOG();
-
-	// compute ActionHOG feature
-	int check(string vidFileName, string featFileName);
-
-	int writeHeader();
-
-	// set video properties
-	int setVidProp(int f, int h, int w);
 
 	// compute ActionHOG
 	int comp();
@@ -68,9 +59,31 @@ public:
 	int getOpticalFlowHOG(const Mat &pre, const Mat &cur, const vector<KeyPoint> &keys, Mat &hog);
 
 	// write points and descriptors
-	int ActionHOG::writeKeyDesc(int idx, const vector<KeyPoint> &keys);
+	int writeKeyDesc(int idx, const vector<KeyPoint> &keys);
+
+	//current frame
+	Mat src, pre, cur;
+
+	//Current foreground mask with isolated regions
+	Mat Rmask;
+
+	//Color descriptor
+	Mat imgHOG;
+
+	// motion history images with different data types
+	Mat mhi8U, mhi32F; 
+
+	int fr_idx;
+
+	char vidname[50];
+
+	int Nbbox;
 
 private:
+
+	// Filter STIPS with foreground masks
+	void filter_Fmask();
+
 	// video file
 	VideoCapture vid;
 
@@ -98,15 +111,19 @@ private:
 	int optnbs;
 
 	// frame size
-	int nframes;
 	int height;
 	int width;
+	int fr_p;
 
 	// descriptor dimensions
 	int imgHOGDims, mhiHOGDims, optHOGDims;
 
 	// descriptors of each frame on different channels
-	Mat imgHOG, mhiHOG, optHOG;
+	Mat mhiHOG, optHOG;
+
+	vector<KeyPoint> dstKeys, dstKeysf;
+
+	vector<int> kpts_roi;	
 };
 
 #endif

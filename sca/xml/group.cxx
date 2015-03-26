@@ -1502,6 +1502,429 @@ group_ (::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d,
     "");
 }
 
+#include <ostream>
+#include <xsd/cxx/tree/error-handler.hxx>
+#include <xsd/cxx/xml/dom/serialization-source.hxx>
+
+void
+group_ (::std::ostream& o,
+        const ::group& s,
+        const ::xml_schema::namespace_infomap& m,
+        const ::std::string& e,
+        ::xml_schema::flags f)
+{
+  ::xsd::cxx::xml::auto_initializer i (
+    (f & ::xml_schema::flags::dont_initialize) == 0);
+
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::group_ (s, m, f));
+
+  ::xsd::cxx::tree::error_handler< char > h;
+
+  ::xsd::cxx::xml::dom::ostream_format_target t (o);
+  if (!::xsd::cxx::xml::dom::serialize (t, *d, e, h, f))
+  {
+    h.throw_if_failed< ::xsd::cxx::tree::serialization< char > > ();
+  }
+}
+
+void
+group_ (::std::ostream& o,
+        const ::group& s,
+        ::xml_schema::error_handler& h,
+        const ::xml_schema::namespace_infomap& m,
+        const ::std::string& e,
+        ::xml_schema::flags f)
+{
+  ::xsd::cxx::xml::auto_initializer i (
+    (f & ::xml_schema::flags::dont_initialize) == 0);
+
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::group_ (s, m, f));
+  ::xsd::cxx::xml::dom::ostream_format_target t (o);
+  if (!::xsd::cxx::xml::dom::serialize (t, *d, e, h, f))
+  {
+    throw ::xsd::cxx::tree::serialization< char > ();
+  }
+}
+
+void
+group_ (::std::ostream& o,
+        const ::group& s,
+        ::xercesc::DOMErrorHandler& h,
+        const ::xml_schema::namespace_infomap& m,
+        const ::std::string& e,
+        ::xml_schema::flags f)
+{
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::group_ (s, m, f));
+  ::xsd::cxx::xml::dom::ostream_format_target t (o);
+  if (!::xsd::cxx::xml::dom::serialize (t, *d, e, h, f))
+  {
+    throw ::xsd::cxx::tree::serialization< char > ();
+  }
+}
+
+void
+group_ (::xercesc::XMLFormatTarget& t,
+        const ::group& s,
+        const ::xml_schema::namespace_infomap& m,
+        const ::std::string& e,
+        ::xml_schema::flags f)
+{
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::group_ (s, m, f));
+
+  ::xsd::cxx::tree::error_handler< char > h;
+
+  if (!::xsd::cxx::xml::dom::serialize (t, *d, e, h, f))
+  {
+    h.throw_if_failed< ::xsd::cxx::tree::serialization< char > > ();
+  }
+}
+
+void
+group_ (::xercesc::XMLFormatTarget& t,
+        const ::group& s,
+        ::xml_schema::error_handler& h,
+        const ::xml_schema::namespace_infomap& m,
+        const ::std::string& e,
+        ::xml_schema::flags f)
+{
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::group_ (s, m, f));
+  if (!::xsd::cxx::xml::dom::serialize (t, *d, e, h, f))
+  {
+    throw ::xsd::cxx::tree::serialization< char > ();
+  }
+}
+
+void
+group_ (::xercesc::XMLFormatTarget& t,
+        const ::group& s,
+        ::xercesc::DOMErrorHandler& h,
+        const ::xml_schema::namespace_infomap& m,
+        const ::std::string& e,
+        ::xml_schema::flags f)
+{
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::group_ (s, m, f));
+  if (!::xsd::cxx::xml::dom::serialize (t, *d, e, h, f))
+  {
+    throw ::xsd::cxx::tree::serialization< char > ();
+  }
+}
+
+void
+group_ (::xercesc::DOMDocument& d,
+        const ::group& s,
+        ::xml_schema::flags)
+{
+  ::xercesc::DOMElement& e (*d.getDocumentElement ());
+  const ::xsd::cxx::xml::qualified_name< char > n (
+    ::xsd::cxx::xml::dom::name< char > (e));
+
+  if (n.name () == "group" &&
+      n.namespace_ () == "")
+  {
+    e << s;
+  }
+  else
+  {
+    throw ::xsd::cxx::tree::unexpected_element < char > (
+      n.name (),
+      n.namespace_ (),
+      "group",
+      "");
+  }
+}
+
+::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument >
+group_ (const ::group& s,
+        const ::xml_schema::namespace_infomap& m,
+        ::xml_schema::flags f)
+{
+  ::xml_schema::dom::auto_ptr< ::xercesc::DOMDocument > d (
+    ::xsd::cxx::xml::dom::serialize< char > (
+      "group",
+      "",
+      m, f));
+
+  ::group_ (*d, s, f);
+  return d;
+}
+
+void
+operator<< (::xercesc::DOMElement& e, const group& i)
+{
+  e << static_cast< const ::xml_schema::type& > (i);
+
+  // behaviour
+  //
+  for (group::behaviour_const_iterator
+       b (i.behaviour ().begin ()), n (i.behaviour ().end ());
+       b != n; ++b)
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "behaviour",
+        e));
+
+    s << *b;
+  }
+
+  // description
+  //
+  if (i.description ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "description",
+        e));
+
+    a << *i.description ();
+  }
+}
+
+void
+operator<< (::xercesc::DOMElement& e, const behaviour& i)
+{
+  e << static_cast< const ::xml_schema::type& > (i);
+
+  // person
+  //
+  for (behaviour::person_const_iterator
+       b (i.person ().begin ()), n (i.person ().end ());
+       b != n; ++b)
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "person",
+        e));
+
+    s << *b;
+  }
+
+  // type
+  //
+  if (i.type ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "type",
+        e));
+
+    a << *i.type ();
+  }
+}
+
+void
+operator<< (::xercesc::DOMElement& e, const person& i)
+{
+  e << static_cast< const ::xml_schema::type& > (i);
+
+  // profile
+  //
+  for (person::profile_const_iterator
+       b (i.profile ().begin ()), n (i.profile ().end ());
+       b != n; ++b)
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "profile",
+        e));
+
+    s << *b;
+  }
+
+  // id
+  //
+  if (i.id ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "id",
+        e));
+
+    a << *i.id ();
+  }
+
+  // description
+  //
+  if (i.description ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "description",
+        e));
+
+    a << *i.description ();
+  }
+}
+
+void
+operator<< (::xercesc::DOMElement& e, const profile& i)
+{
+  e << static_cast< const ::xml_schema::type& > (i);
+
+  // frame
+  //
+  for (profile::frame_const_iterator
+       b (i.frame ().begin ()), n (i.frame ().end ());
+       b != n; ++b)
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "frame",
+        e));
+
+    s << *b;
+  }
+
+  // type
+  //
+  if (i.type ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "type",
+        e));
+
+    a << *i.type ();
+  }
+}
+
+void
+operator<< (::xercesc::DOMElement& e, const frame& i)
+{
+  e << static_cast< const ::xml_schema::type& > (i);
+
+  // bb
+  //
+  {
+    ::xercesc::DOMElement& s (
+      ::xsd::cxx::xml::dom::create_element (
+        "bb",
+        e));
+
+    s << i.bb ();
+  }
+
+  // no
+  //
+  if (i.no ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "no",
+        e));
+
+    a << *i.no ();
+  }
+}
+
+void
+operator<< (::xercesc::DOMElement& e, const bb& i)
+{
+  e << static_cast< const ::xml_schema::string& > (i);
+
+  // ul_x
+  //
+  if (i.ul_x ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "ul_x",
+        e));
+
+    a << *i.ul_x ();
+  }
+
+  // ul_y
+  //
+  if (i.ul_y ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "ul_y",
+        e));
+
+    a << *i.ul_y ();
+  }
+
+  // lr_x
+  //
+  if (i.lr_x ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "lr_x",
+        e));
+
+    a << *i.lr_x ();
+  }
+
+  // lr_y
+  //
+  if (i.lr_y ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "lr_y",
+        e));
+
+    a << *i.lr_y ();
+  }
+
+  // or
+  //
+  if (i.or_ ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "or",
+        e));
+
+    a << *i.or_ ();
+  }
+
+  // gp_x
+  //
+  if (i.gp_x ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "gp_x",
+        e));
+
+    a << *i.gp_x ();
+  }
+
+  // gp_y
+  //
+  if (i.gp_y ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "gp_y",
+        e));
+
+    a << *i.gp_y ();
+  }
+
+  // gp_or
+  //
+  if (i.gp_or ())
+  {
+    ::xercesc::DOMAttr& a (
+      ::xsd::cxx::xml::dom::create_attribute (
+        "gp_or",
+        e));
+
+    a << *i.gp_or ();
+  }
+}
+
 #include <xsd/cxx/post.hxx>
 
 // Begin epilogue.
