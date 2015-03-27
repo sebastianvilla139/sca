@@ -8,7 +8,6 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/features2d/features2d.hpp"
 
-
 using std::string;
 
 using namespace cv;
@@ -70,7 +69,7 @@ public:
 	int getOpticalFlowHOG(const Mat &pre, const Mat &cur, const vector<KeyPoint> &keys, Mat &hog);
 
 	// write points and descriptors
-	int writeKeyDesc(const vector<KeyPoint> &keys);
+	int ActionHOG::writeKeyDesc(int idx, const vector<KeyPoint> &keys);
 
 	//current frame
 	Mat src, pre, cur;
@@ -85,12 +84,19 @@ public:
 
 	char vidname[50];
 
-	int Nbbox;
-
-	vector<KeyPoint> dstKeysf;
+	int Nbbox;	
 
 	//Stores color STIP descriptors for each ROI
 	vector<vector<vector<float>>> STIPs_roi;
+
+	// descriptor dimensions
+	int imgHOGDims, mhiHOGDims, optHOGDims;
+
+	// descriptors of each frame on different channels
+	Mat imgHOG, mhiHOG, optHOG;
+	vector<KeyPoint> dstKeys, dstKeysf;
+
+	vector<int> kpts_roi;	
 
 private:
 
@@ -128,15 +134,7 @@ private:
 	int height;
 	int width;
 	int fr_p;
-
-	// descriptor dimensions
-	int imgHOGDims, mhiHOGDims, optHOGDims;
-
-	// descriptors of each frame on different channels
-	Mat mhiHOG, optHOG;
-	vector<KeyPoint> dstKeys, dstKeysf;
-
-	vector<int> kpts_roi;	
+	
 };
 
 #endif

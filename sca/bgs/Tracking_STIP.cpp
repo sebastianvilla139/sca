@@ -75,7 +75,7 @@ void Tracking_STIP::matchSTIPs(vector<vector<float>> Query, vector<vector<float>
 
 			}
 			else{
-				difval = Norm_vectors(Query[i], Model[j]);	//2norm between Query[i] and Model[j]
+				difval = Gkernel_vectors(Query[i], Model[j]);	//2norm between Query[i] and Model[j]
 
 				if((difval<thr_match)&(difval<refval)){		//Validate the matching between Query[i] and Model[j]
 
@@ -240,7 +240,7 @@ float Tracking_STIP::Gkernel_vectors(vector<float> A, vector<float> B)
 	}
 	sqrt(normv);
 
-	gkernel = exp((normv*normv)
+	gkernel = exp((normv*normv));
 
 	return normv;
 }

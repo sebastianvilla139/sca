@@ -12,9 +12,9 @@
 #include <iostream>
 #include "Input_source.h"
 #include "Tracking_STIP.h"
-#include "ActionHOGLibs.h"
+#include "../stip/ActionHOGLibs.h"
 
-int main() 
+int bg_main() 
 {
 	Input_source In_src;
 
@@ -189,7 +189,7 @@ int main()
 
 				//Write keys and descriptors every 3 frames
 				if((In_src.fr_idx % 3 == 0)&flag_saveROI){
-					Stip_X.writeKeyDesc(Stip_X.dstKeysf);
+					Stip_X.writeKeyDesc(In_src.fr_idx, Stip_X.dstKeysf);
 				}
 
 				//Copy STIP descriptors to track object

@@ -40,8 +40,8 @@ public:
 	void Imagesc(Mat src, int siz, char* Plotname);
 
 	void Save_bbox();
-
-	float Norm_vectors(vector<float> A, vector<float> B);
+	
+	float Tracking_STIP::Gkernel_vectors(vector<float> A, vector<float> B);
 
 	cv::Mat Mul3(cv::Mat A3, cv::Mat B1);
 

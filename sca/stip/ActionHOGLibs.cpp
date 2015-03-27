@@ -271,6 +271,7 @@ int ActionHOG::comp() {
 		}
 
 	return 1;
+	}
 }
 
 
@@ -303,6 +304,7 @@ void ActionHOG::filter_Fmask(){
 		imshow("keys", imgDstKeys);
 	}
 }
+
 
 
 int ActionHOG::detKeys(const Mat &img, vector<KeyPoint> &keys) {
@@ -559,67 +561,160 @@ int ActionHOG::getOpticalFlowHOG(const Mat &pre, const Mat &cur, const vector<Ke
 #endif
 
 
-int ActionHOG::writeKeyDesc(const vector<KeyPoint> &keys) {
-	int nKeys = keys.size();
+int ActionHOG::writeKeyDesc(int idx, const vector<KeyPoint> &keys) {
+	static char frame_index_filename[MAX_FRAME_INDEX_FILENAME_SIZE] = {'\0'};
 
-	char save_path[250], fr[5], bbox[5];
+	idx = first_frame_index_number + idx;
 
-	itoa(fr_idx,fr,10);
+	sprintf(frame_index_filename, "%d.xml\0", idx);
+	//cout << currentDateTime()  << "frame_index filename: " << frame_index_filename << endl;
 
-	double d1, d2, d3, d4;
+	std::ostringstream frame_index_file_path;
+	frame_index_file_path << frame_index_path << "\\" << frame_index_filename;
+	//cout << currentDateTime()  << "parsing frame_index_file_path: " << frame_index_file_path.str() << endl;						
 
-	for (int i=0; i<Nbbox;i++){ //loop through detected ROI
+	DOMDocument* frame_info_document = xmlParser->parseURI(frame_index_file_path.str().c_str());
 
-		itoa(i,bbox,10);
+	const DOMXPathNSResolver* resolver = frame_info_document->createNSResolver(frame_info_document->getDocumentElement());
 
-		//make path to save LBSP images
-		strcpy(save_path,"C:\\Users\\Santiago\\Desktop\\People_Dbase\\STIP\\");
-		strcat(save_path,vidname);
-		strcat(save_path,"_");
-		strcat(save_path,fr);
-		strcat(save_path,"_");
-		strcat(save_path,bbox);
-		strcat(save_path,".txt");
+	XQillaNSResolver* xqillaResolver = (XQillaNSResolver*)resolver;   
+	xqillaResolver->addNamespaceBinding(X("xs"), X("http://www.w3.org/2001/XMLSchema"));	
+	xqillaResolver->addNamespaceBinding(X("fn"), X("http://www.w3.org/2005/xpath-functions"));	
 
-		//open file
-		fp = fopen(save_path,"w+");
+	try {
 
-		for (int k=0; k<kpts_roi.size();k++){	//loop through STIP descriptors
+		std::ostringstream roi_xpath_expression;
+		roi_xpath_expression << "//roi[person_id[text()=\""<< person_id << "\"]]";
+		//cout << currentDateTime()  << "roi_xpath_expression: " << roi_xpath_expression.str() << endl;
+
+		const DOMXPathExpression* parsedExpression = frame_info_document->createExpression(X(roi_xpath_expression.str().c_str()), resolver);
+
+		DOMXPathResult* iteratorResult = (DOMXPathResult*)parsedExpression->evaluate(frame_info_document->getDocumentElement(), DOMXPathResult::ITERATOR_RESULT_TYPE, 0);
+
+		int i = 0;
+
+		while(iteratorResult->iterateNext()) {
+			if(iteratorResult->isNode()) {
+				DOMNode* n (iteratorResult->getNodeValue ());
+
+				char * localName = XMLString::transcode(n->getLocalName());
+
+				//cout << currentDateTime()  << "Localname: " << localName << endl;
+
+				DOMElement* resultElement = dynamic_cast<DOMElement*>(n);
+
+				if(strcmp( localName, "roi") == 0) {
+
+					roi* r = new roi (*resultElement);
+
+					//cout << currentDateTime()  << "roi info for person " << person_id << ": " << endl;
+					//cout << currentDateTime()  << "bb_ul_x: " << r->bb_ul_x() << endl;
+					//cout << currentDateTime()  << "bb_ul_y: " << r->bb_ul_y() << endl;
+					//cout << currentDateTime()  << "bb_lr_x: " << r->bb_lr_x() << endl;
+					//cout << currentDateTime()  << "bb_lr_y: " << r->bb_lr_y() << endl;
+
+					int nKeys = keys.size();
+
+					// Informacion de ROIs desde Ground Truth
+					for (int i = 0; i < nKeys; ++i) {
+						fprintf(fp, "%d ", idx);
+						fprintf(fp, "%d %d %d %d ", r->bb_ul_x(), r->bb_ul_y(), r->bb_lr_x(), r->bb_lr_y());
+						fprintf(fp, "%f %f %f ", keys[i].pt.x, keys[i].pt.y, keys[i].size);
+
+						if (imgflag) {
+							const float *pimg = imgHOG.ptr<float>(i);
+							for (int j = 0; j < imgHOGDims; ++j)
+								fprintf(fp, "%f ", pimg[j]);
+						}
+
+						if (mhiflag) {
+							const float *pmhi = mhiHOG.ptr<float>(i);
+							for (int j = 0; j < mhiHOGDims; ++j)
+								fprintf(fp, "%f ", pmhi[j]);
+						}
+
+						if (optflag) {
+							const float *popt = optHOG.ptr<float>(i);
+							for (int j = 0; j < optHOGDims; ++j)
+								fprintf(fp, "%f ", popt[j]);
+						}
+
+						fprintf(fp, "\n");
+					}					
+
+					char save_path[250], fr[5], bbox[5];
+
+					itoa(fr_idx,fr,10);
+
+					double d1, d2, d3, d4;
+
+					// Informacion de ROIs desde Subsense
+					for (int i=0; i<Nbbox;i++){ //loop through detected ROI
+
+						itoa(i,bbox,10);
+
+						//make path to save LBSP images
+						strcpy(save_path,"C:\\Users\\Santiago\\Desktop\\People_Dbase\\STIP\\");
+						strcat(save_path,vidname);
+						strcat(save_path,"_");
+						strcat(save_path,fr);
+						strcat(save_path,"_");
+						strcat(save_path,bbox);
+						strcat(save_path,".txt");
+
+						//open file
+						fp = fopen(save_path,"w+");
+
+						for (int k=0; k<kpts_roi.size();k++){	//loop through STIP descriptors
 			
-			//check if the descriptor belongs to the current ROI
-			if(kpts_roi[k]==i+1){
+							//check if the descriptor belongs to the current ROI
+							if(kpts_roi[k]==i+1){
 
-				//write stip coordinates and ratio
-				fprintf(fp, "%f %f %f ", keys[k].pt.x, keys[k].pt.y, keys[k].size);
+								//write stip coordinates and ratio
+								fprintf(fp, "%f %f %f ", keys[k].pt.x, keys[k].pt.y, keys[k].size);
 
-				//write distances to "interest points"
-				d1 = sqrt((keys[k].pt.x + 219)*(keys[k].pt.x + 219) +(keys[k].pt.y + 159)*(keys[k].pt.y + 159) );
-				d2 = sqrt((keys[k].pt.x + 20)*(keys[k].pt.x + 20) + (keys[k].pt.y + 205)*(keys[k].pt.y + 205) );
-				d3 = sqrt((keys[k].pt.x + 75)*(keys[k].pt.x + 75) +(keys[k].pt.y + 182)*(keys[k].pt.y + 182) );
-				d4 = sqrt((keys[k].pt.x + 350)*(keys[k].pt.x + 350) +(keys[k].pt.y + 127)*(keys[k].pt.y + 127) );
-				fprintf(fp,"%f %f %f %f ", d1, d2, d3, d4);
+								//write distances to "interest points"
+								d1 = sqrt((keys[k].pt.x + 219)*(keys[k].pt.x + 219) +(keys[k].pt.y + 159)*(keys[k].pt.y + 159) );
+								d2 = sqrt((keys[k].pt.x + 20)*(keys[k].pt.x + 20) + (keys[k].pt.y + 205)*(keys[k].pt.y + 205) );
+								d3 = sqrt((keys[k].pt.x + 75)*(keys[k].pt.x + 75) +(keys[k].pt.y + 182)*(keys[k].pt.y + 182) );
+								d4 = sqrt((keys[k].pt.x + 350)*(keys[k].pt.x + 350) +(keys[k].pt.y + 127)*(keys[k].pt.y + 127) );
+								fprintf(fp,"%f %f %f %f ", d1, d2, d3, d4);
 
-				if (imgflag) {
-					const float *pimg = imgHOG.ptr<float>(k);
-					for (int j = 0; j < imgHOGDims; ++j)
-						fprintf(fp, "%f ", pimg[j]);
+								if (imgflag) {
+									const float *pimg = imgHOG.ptr<float>(k);
+									for (int j = 0; j < imgHOGDims; ++j)
+										fprintf(fp, "%f ", pimg[j]);
+								}
+
+								if (mhiflag) {
+									const float *pmhi = mhiHOG.ptr<float>(k);
+									for (int j = 0; j < mhiHOGDims; ++j)
+										fprintf(fp, "%f ", pmhi[j]);
+								}
+
+								if (optflag) {
+									const float *popt = optHOG.ptr<float>(k);
+									for (int j = 0; j < optHOGDims; ++j)
+										fprintf(fp, "%f ", popt[j]);
+								}
+								fprintf(fp,"\n");
+							}
+						}
+						fclose(fp);
+					}
 				}
-
-				if (mhiflag) {
-					const float *pmhi = mhiHOG.ptr<float>(k);
-					for (int j = 0; j < mhiHOGDims; ++j)
-						fprintf(fp, "%f ", pmhi[j]);
-				}
-
-				if (optflag) {
-					const float *popt = optHOG.ptr<float>(k);
-					for (int j = 0; j < optHOGDims; ++j)
-						fprintf(fp, "%f ", popt[j]);
-				}
-				fprintf(fp,"\n");
 			}
 		}
-		fclose(fp);
 	}
+	catch(DOMXPathException &e) {
+		cerr << "DOMXPathException: " << UTF8(e.msg) << endl;
+		return 1;
+	}
+	catch(DOMException &e) {
+		cerr << "DOMException: " << UTF8(e.getMessage()) << endl;
+		return 1;
+	}	
+
+	
 	return 1;
 }
