@@ -3,8 +3,11 @@
 //-------------------------------------------------------------------------------------
 //Constructor
 Tracking_STIP::Tracking_STIP(cv::Mat iniFr){
+	
 	pminArea = 0.0005;
 	minArea = int(pminArea*double(iniFr.cols*iniFr.rows));  //Minimum area to consider a region
+
+	thr_match = 2.5;
 }
 
 //-------------------------------------------------------------------------------------
@@ -47,28 +50,41 @@ void Tracking_STIP::getRegions(){
 //-------------------------------------------------------------------------------------
 void Tracking_STIP::matchRegions(){
 	
-	Bwlabel(Fmask,Rmask);	//get regions
+	
+}
 
-	int min_x, max_x, min_y, max_y, wid, heig;
-	std::vector<int> Obj;
-	Bbox.clear();
+//-------------------------------------------------------------------------------------
+//Match stip features from a query set
+//-------------------------------------------------------------------------------------
+void Tracking_STIP::matchSTIPs(vector<vector<float>> Query, vector<vector<float>> Model){
+	
+	vector<int> Query_matches (Query.size(),0);	//Indices of Model that match Query STIPs (if found any) 
 
-	for (int i=0; i<Nroi;i++){
-		//Find the corners of the bounding boxes that cover each moving object
-		min_x = *std::min_element(Xcroi[i].begin(),Xcroi[i].end());   
-		max_x = *std::max_element(Xcroi[i].begin(),Xcroi[i].end());
-		min_y = *std::min_element(Ycroi[i].begin(),Ycroi[i].end());
-		max_y = *std::max_element(Ycroi[i].begin(),Ycroi[i].end());
-		wid = max_x-min_x;
-		heig = max_y-min_y;
+	float difval, refval;
 
-		//Copy bbox coordinates into registers
-		Obj.clear();
-		Obj.push_back(min_x);
-		Obj.push_back(min_y);
-		Obj.push_back(wid);
-		Obj.push_back(heig);
-		Bbox.push_back(Obj);
+	for(int i=0; i<Query.size(); i++){
+
+		refval = 1000;	//initialize reference matching value
+
+		for(int j=0; j<Model.size();j++){
+
+			//check if the current index j has already taken into Query_matches
+			std::vector<int>::iterator it = std::find (Query_matches.begin(), Query_matches.end(), j);	
+			
+			if (it != Query_matches.end()){
+
+			}
+			else{
+				difval = Norm_vectors(Query[i], Model[j]);	//2norm between Query[i] and Model[j]
+
+				if((difval<thr_match)&(difval<refval)){		//Validate the matching between Query[i] and Model[j]
+
+					refval = difval;	//assign new reference matching value
+
+					Query_matches[i] = j;	//assign Model j index to Query i
+				}
+			}
+		}
 	}
 }
 
@@ -211,6 +227,24 @@ void Tracking_STIP::Save_bbox(){
 		cv::imwrite(save_path,Bb_LBSP);
 	}
 }
+
+//-------------------------------------------------------------------------------------
+//Calculate the 2-norm of the difference of vectors <A-B>
+//-------------------------------------------------------------------------------------
+float Tracking_STIP::Gkernel_vectors(vector<float> A, vector<float> B)
+{
+	float normv = 0, gkernel;
+
+	for(int i=0; i<A.size(); i++){
+		normv = pow(A[i]-B[i],2)+normv;
+	}
+	sqrt(normv);
+
+	gkernel = exp((normv*normv)
+
+	return normv;
+}
+
 
 //-------------------------------------------------------------------------------------
 //Multiplication of 3-channel array by a 1-channel array

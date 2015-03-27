@@ -242,11 +242,33 @@ int ActionHOG::comp() {
 		// update preceding frame
 		cur.copyTo(pre);
 
-		// write keys and descriptors
-		writeKeyDesc(fr_p, dstKeysf);
-		
 		// increase number of processed frames
 		fr_p++;
+
+		//Copy color STIP descriptors to an array according each ROI
+
+		vector<float> STIP;
+		vector<vector<float>> STIPs;
+		
+		STIPs_roi.clear();
+
+		for (int i=0; i<Nbbox;i++){//loop through ROIs
+			STIPs.clear();
+			for (int k=0; k<kpts_roi.size();k++){//loop through Keypoints
+				
+				//check if the Keypoint belongs to the current ROI
+				if(kpts_roi[k]==i+1){
+					if (imgflag) {
+						const float *pimg = imgHOG.ptr<float>(k);
+						STIP.clear();
+						for (int j = 0; j < imgHOGDims; ++j)
+							STIP.push_back(pimg[j]);	//store values of a single STIP
+					}
+					STIPs.push_back(STIP);	//store all the STIPs of a single ROI
+				}
+			}
+			STIPs_roi.push_back(STIPs); //store STIPs of each ROI
+		}
 
 	return 1;
 }
@@ -267,8 +289,6 @@ void ActionHOG::filter_Fmask(){
 			kpts_roi.push_back(v);
 		}
 	}
-
-	cout<<"Keys: "<<dstKeysf.size()<<std::endl;
 
 	// visualize keys
 	if (vis) {
@@ -400,37 +420,6 @@ int ActionHOG::filterKeysByMotion(const vector<KeyPoint> &srcKeys, vector<KeyPoi
 		// preserve keys with sufficient motions
 		dstKeys.push_back(tempKeys[i]);
 	}
-
-	//// visualize keys
-	//if (vis) {
-	//	Mat imgDstKeys = src.clone();
-	//	int nDstKeys = dstKeys.size();
-	//	
-	//	for (int i = 0; i < nDstKeys; ++i) {
-	//		// draw circle
-	//		circle(imgDstKeys, dstKeys[i].pt, (int)dstKeys[i].size/2, Scalar(0, 0, 255), 2);
-	//		
-	//		// draw arrow line
-	//		line(imgDstKeys, optPre[i], optCur[i], Scalar(0, 255, 0));
-	//		
-	//		double dx = optCur[i].x - optPre[i].x;
-	//		double dy = optCur[i].y - optPre[i].y;
-	//		double len = 0.3 * std::sqrt(dx*dx + dy*dy);
-	//		double ang = atan2(optPre[i].y - optCur[i].y, optPre[i].x - optCur[i].x);
-	//		Point2f temp;
-	//		
-	//		temp.x = (float)(optCur[i].x + len * std::cos(ang + 3.1416/4));
-	//		temp.y = (float)(optCur[i].y + len * std::sin(ang + 3.1416/4));
-	//		line(imgDstKeys, temp, optCur[i], Scalar(0, 255, 0));
-
-	//		temp.x = (float)(optCur[i].x + len * std::cos(ang - 3.1416/4));
-	//		temp.y = (float)(optCur[i].y + len * std::sin(ang - 3.1416/4));
-	//		line(imgDstKeys, temp, optCur[i], Scalar(0, 255, 0));
-	//	}
-
-	//	imshow("keys", imgDstKeys);
-	//	waitKey(fdur);
-	//}
 
 	return 1;
 }
@@ -570,7 +559,7 @@ int ActionHOG::getOpticalFlowHOG(const Mat &pre, const Mat &cur, const vector<Ke
 #endif
 
 
-int ActionHOG::writeKeyDesc(int idx, const vector<KeyPoint> &keys) {
+int ActionHOG::writeKeyDesc(const vector<KeyPoint> &keys) {
 	int nKeys = keys.size();
 
 	char save_path[250], fr[5], bbox[5];
@@ -579,7 +568,7 @@ int ActionHOG::writeKeyDesc(int idx, const vector<KeyPoint> &keys) {
 
 	double d1, d2, d3, d4;
 
-	for (int i=0; i<Nbbox;i++){
+	for (int i=0; i<Nbbox;i++){ //loop through detected ROI
 
 		itoa(i,bbox,10);
 
@@ -595,7 +584,9 @@ int ActionHOG::writeKeyDesc(int idx, const vector<KeyPoint> &keys) {
 		//open file
 		fp = fopen(save_path,"w+");
 
-		for (int k=0; k<kpts_roi.size();k++){
+		for (int k=0; k<kpts_roi.size();k++){	//loop through STIP descriptors
+			
+			//check if the descriptor belongs to the current ROI
 			if(kpts_roi[k]==i+1){
 
 				//write stip coordinates and ratio
