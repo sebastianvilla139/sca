@@ -8,64 +8,191 @@
 #include <opencv2/video/background_segm.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <stdio.h>
+#include <vector>
+#include <iostream>
+#include "Input_source.h"
+#include "Tracking_STIP.h"
+#include "..\stip\ActionHOGLibs.h"
 
-static void help() {
-    printf("\nMinimalistic example of foreground-background segmentation in a video sequence using\n"
-            "OpenCV's BackgroundSubtractor interface; will analyze frames from the default camera\n"
-            "or from a specified file.\n\n"
-            "Usage: \n"
-            "  ./bgfg_segm [--camera]=<use camera, true/false>, [--file]=<path to file> \n\n");
-}
+int main_bgs() 
+{
+	Input_source In_src;
 
-const char* keys = {
-    "{c  |camera   |true     | use camera or not}"
-    "{f  |file     |tree.avi | movie file path  }"
-};
+	int src;
 
-int main(int argc, const char** argv) {
-    help();
-    cv::CommandLineParser parser(argc, argv, keys);
-    const bool bUseDefaultCamera = parser.get<bool>("camera");
-    const std::string sVideoFilePath = parser.get<std::string>("file");
-    cv::VideoCapture oVideoInput;
+	src = In_src.menu();
+    
+	cv::VideoCapture oVideoInput;
+
     cv::Mat oCurrInputFrame, oCurrSegmMask, oCurrReconstrBGImg;
 
-    if(bUseDefaultCamera) {
-        oVideoInput.open(0);
-        oVideoInput >> oCurrInputFrame;
-    }
-    else {
-        oVideoInput.open(sVideoFilePath);
-        oVideoInput >> oCurrInputFrame;
-        oVideoInput.set(CV_CAP_PROP_POS_FRAMES,0);
-    }
-    parser.printParams();
-    if(!oVideoInput.isOpened() || oCurrInputFrame.empty()) {
-        if(bUseDefaultCamera)
-            printf("Could not open default camera.\n");
-        else
-            printf("Could not open video file at '%s'.\n",sVideoFilePath.c_str());
-        return -1;
-    }
-    oCurrSegmMask.create(oCurrInputFrame.size(),CV_8UC1);
-    oCurrReconstrBGImg.create(oCurrInputFrame.size(),oCurrInputFrame.type());
+	int n_vid, cat_sel, vid_id;
+
+	bool flag_roi = true; //true: Load roi, false: work with full frame
+	bool flag_load = true;  //true: Load precomputed codebooks, false: Initialize from zero
+
+	//Dsiplay flag information 
+	std::cout<<"Flag ROI : "<<flag_roi<<" Flag Load : "<<flag_load<<std::endl;
+
+	switch (src)
+	{
+		//Image source----------------
+	case 1: In_src.Im_seq_sel();
+			break;
+		//Video source----------------
+	case 2: In_src.Vid_sel();
+			oVideoInput.open(In_src.vpath);
+			oVideoInput >> oCurrInputFrame;
+			oVideoInput.set(CV_CAP_PROP_POS_FRAMES,0);
+			break;
+		//WebCam source----------------
+	case 3: In_src.WebCam_sel();
+			oVideoInput.open(0);
+			oVideoInput >> oCurrInputFrame;
+			break;
+	}
+
+	//create visualization windows
     cv::namedWindow("input",cv::WINDOW_NORMAL);
     cv::namedWindow("segmentation mask",cv::WINDOW_NORMAL);
-    cv::namedWindow("reconstructed background",cv::WINDOW_NORMAL);
-    BackgroundSubtractorSuBSENSE oBGSAlg;
-    oBGSAlg.initialize(oCurrInputFrame,cv::Mat(oCurrInputFrame.size(),CV_8UC1,cv::Scalar_<uchar>(255)));
-    for(;;) {
-        oVideoInput >> oCurrInputFrame;
-        if(oCurrInputFrame.empty())
-            break;
-        oBGSAlg(oCurrInputFrame,oCurrSegmMask);
-        oBGSAlg.getBackgroundImage(oCurrReconstrBGImg);
-        imshow("input",oCurrInputFrame);
-        imshow("segmentation mask",oCurrSegmMask);
-        imshow("reconstructed background",oCurrReconstrBGImg);
-        if(cv::waitKey(1)==27)
-            break;
-    }
-    return 0;
+    //cv::namedWindow("reconstructed background",cv::WINDOW_NORMAL);
+
+	for(int c=0; c<In_src.Im_seqs[0].size();c++)	//loop through video categories
+	{
+		//identify number of videos to test (depending the categories selected)
+		if(In_src.Im_seqs[1][0]!=-1)
+		{
+			n_vid = In_src.Im_seqs[1].size();	//single category
+		}
+		else
+		{
+			n_vid = In_src.Im_seqs[2][c];		//multiple categories
+		}
+
+		cat_sel = In_src.Im_seqs[0][c];		//get category to test	
+
+		for(int v=0; v<n_vid; v++)	//loop through videos
+		{
+			//get videos ids (depending the categories selected)
+			if(In_src.Im_seqs[1][0]!=-1)
+			{
+				vid_id = In_src.Im_seqs[1][v];	
+			}
+			else
+			{
+				vid_id = v+1;
+			}
+
+			if(src==1)
+			{
+				In_src.Im_seq_info(cat_sel,vid_id);
+				oCurrInputFrame = In_src.ReadIm(In_src.inifr);
+				In_src.fr_idx = In_src.inifr;
+			}
+
+			//create BGS Subsense object
+			BackgroundSubtractorSuBSENSE oBGSAlg;
+
+			//copy loadvars flag
+			oBGSAlg.loadvars = flag_load;
+
+			//create Tracking_Stip object
+			Tracking_STIP Track_X(oCurrInputFrame);
+
+			//create stip object
+			ActionHOG Stip_X;
+			
+			//check if open
+			if(src==2)
+			{
+				if(!oVideoInput.isOpened() || oCurrInputFrame.empty()) {
+					printf("Could not open video file at '%s'.\n",In_src.vpath);
+					cv::waitKey();
+					return -1;
+				}
+			}
+			if(src==3)
+			{
+				if(!oVideoInput.isOpened() || oCurrInputFrame.empty()) {
+					printf("Could not open default camera.\n");
+					cv::waitKey();
+					return -1;
+				}
+			}
+
+			//Initialize Subsense variables
+			oCurrSegmMask.create(oCurrInputFrame.size(),CV_8UC1);
+			oCurrReconstrBGImg.create(oCurrInputFrame.size(),oCurrInputFrame.type());
+
+			//Depending on flag_roi load ROI or not
+			cv::Mat R;
+			if(flag_roi){
+				R = cv::imread("ROI.png",CV_8UC1);
+			}
+			else
+			{
+				R = cv::Mat(oCurrInputFrame.size(),CV_8UC1,cv::Scalar_<uchar>(255));
+			}
+
+			//Initialize Subsense
+			oBGSAlg.initialize(oCurrInputFrame,R);
+
+			//loop through video frames
+			while(In_src.fr_idx<In_src.endfr) {
+				
+				if(src!=1)
+				{
+					oVideoInput >> oCurrInputFrame;
+				}
+				else
+				{
+					oCurrInputFrame = In_src.ReadIm(In_src.fr_idx);
+					In_src.fr_idx++;
+				}
+				if(oCurrInputFrame.empty())
+					break;
+
+				//Process
+				oBGSAlg(oCurrInputFrame,oCurrSegmMask);
+				//oBGSAlg.getBackgroundImage(oCurrReconstrBGImg);
+
+				//Visualization
+				imshow("input",oCurrInputFrame);
+				imshow("segmentation mask",oCurrSegmMask);
+				//imshow("reconstructed background",oCurrReconstrBGImg);
+
+				//Copy information to track class
+				Track_X.Fmask = oCurrSegmMask;
+				Track_X.Im_RGB = oCurrInputFrame;
+				Track_X.Im_LBSP = oBGSAlg.LBSP_m;
+				Track_X.fr_idx = In_src.fr_idx;
+				strcpy(Track_X.vidname,In_src.vidname);
+
+				//Get bbox coordinates of isolated foreground regions and store into registers
+				Track_X.getRegions();
+
+				//Save bbox color and LBSP image every 3 frames
+				if(In_src.fr_idx % 3 == 0){
+					Track_X.Save_bbox();
+				}
+
+				//Copy information to ActionHOG class
+				Stip_X.src = oCurrInputFrame;
+				Stip_X.Rmask = Track_X.Rmask;
+				strcpy(Stip_X.vidname ,In_src.vidname);
+				Stip_X.fr_idx = In_src.fr_idx;
+				Stip_X.Nbbox = Track_X.Nroi;
+
+				//Compute STIP features
+				Stip_X.comp();
+
+				if(cv::waitKey(1)==27)
+					break;
+			}
+			//Save subsense codebooks and parameters
+			//oBGSAlg.saveVariables();
+		}
+	}
+	return 0;
 }
 

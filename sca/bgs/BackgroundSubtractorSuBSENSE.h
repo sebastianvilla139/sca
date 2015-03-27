@@ -13,7 +13,7 @@
 //! defines the default value for BackgroundSubtractorSuBSENSE::m_nRequiredBGSamples
 #define BGSSUBSENSE_DEFAULT_REQUIRED_NB_BG_SAMPLES (2)
 //! defines the default value for BackgroundSubtractorSuBSENSE::m_nSamplesForMovingAvgs
-#define BGSSUBSENSE_DEFAULT_N_SAMPLES_FOR_MV_AVGS (100)
+#define BGSSUBSENSE_DEFAULT_N_SAMPLES_FOR_MV_AVGS (300)
 
 /*!
 	Self-Balanced Sensitivity segmenTER (SuBSENSE) change detection algorithm.
@@ -47,6 +47,39 @@ public:
 	void getBackgroundImage(cv::OutputArray backgroundImage) const;
 	//! returns a copy of the latest reconstructed background descriptors image
 	void getBackgroundDescriptorsImage(cv::OutputArray backgroundDescImage) const;
+
+	//TEST: Save codebooks from images 
+	void saveVariables();
+
+	//TEST: Load codebooks from images 
+	bool loadVariables();
+
+	//Flag load variables
+	bool loadvars;
+
+	//TEST: Write Mat to .txt
+	void TxtMat(cv::Mat M, char* txtname);
+	
+	//TEST: Copies of background model color and LBSP codebooks. Used to generate a predefined background model
+	std::vector<cv::Mat> Color_cbook;
+	std::vector<cv::Mat> LBSP_cbook;
+
+	//TEST: LBSP textures of current frame
+	cv::Mat LBSP_m;
+
+	//TEST: Copies of updating parameters 
+	
+	//! per-pixel update rates ('T(x)' in PBAS, which contains pixel-level 'sigmas', as referred to in ViBe)
+	cv::Mat UpdateRate_copy;
+	//! per-pixel distance thresholds (equivalent to 'R(x)' in PBAS, but used as a relative value to determine both intensity and descriptor variation thresholds)
+	cv::Mat DistThreshold_copy;
+	//! per-pixel distance variation modulators ('v(x)', relative value used to modulate 'R(x)' and 'T(x)' variations)
+	cv::Mat VariationModulator_copy;
+	//! per-pixel mean distances between consecutive frames ('D_last(x)', used to detect ghosts and high variation regions in the sequence)
+	cv::Mat MeanLastDist_copy;
+	//! per-pixel mean minimal distances from the model ('D_min(x)' in PBAS, used to control variation magnitude and direction of 'T(x)' and 'R(x)')
+	cv::Mat MeanMinDist_LT_copy, MeanMinDist_ST_copy;
+
 
 protected:
 	//! absolute minimal color distance threshold ('R' or 'radius' in the original ViBe paper, used as the default/initial 'R(x)' value here)

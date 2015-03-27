@@ -3,6 +3,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/video/background_segm.hpp>
 #include "LBSP.h"
+#include <fstream>
 
 /*!
 	Local Binary Similarity Pattern (LBSP)-based change detection algorithm (abstract version/base class).
@@ -35,10 +36,10 @@ public:
 	void setAutomaticModelReset(bool);
 
 protected:
+	//Structure to hold the X(column), Y(row) and 
 	struct PxInfoBase {
 		int nImgCoord_Y;
 		int nImgCoord_X;
-		size_t nModelIdx;
 	};
 	//! background model ROI used for LBSP descriptor extraction (specific to the input image size)
 	cv::Mat m_oROI;

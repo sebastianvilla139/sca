@@ -126,6 +126,12 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="bgs\BackgroundSubtractorLBSP.cpp" />
+    <ClCompile Include="bgs\BackgroundSubtractorSuBSENSE.cpp" />
+    <ClCompile Include="bgs\bgfg_segm.cpp" />
+    <ClCompile Include="bgs\Input_source.cpp" />
+    <ClCompile Include="bgs\LBSP.cpp" />
+    <ClCompile Include="bgs\Tracking_STIP.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="stip\ActionHOGLibs.cpp" />
     <ClCompile Include="stip\ActionHOGUtils.cpp" />
@@ -135,6 +141,13 @@
     <ClCompile Include="xml\minion.cxx" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="bgs\BackgroundSubtractorLBSP.h" />
+    <ClInclude Include="bgs\BackgroundSubtractorSuBSENSE.h" />
+    <ClInclude Include="bgs\DistanceUtils.h" />
+    <ClInclude Include="bgs\Input_source.h" />
+    <ClInclude Include="bgs\LBSP.h" />
+    <ClInclude Include="bgs\RandUtils.h" />
+    <ClInclude Include="bgs\Tracking_STIP.h" />
     <ClInclude Include="stip\ActionHOGLibs.h" />
     <ClInclude Include="stip\ActionHOGUtils.h" />
     <ClInclude Include="util.h" />

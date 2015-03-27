@@ -28,6 +28,12 @@
     <Filter Include="Header Files\stip">
       <UniqueIdentifier>{942df5fd-410d-44cf-ab98-725a9b35db86}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\bgs">
+      <UniqueIdentifier>{4b20865c-d1ee-473f-a7d9-bf26c01dc067}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\bgs">
+      <UniqueIdentifier>{f9be016d-a2de-420b-82f6-17a0082be2ec}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -51,6 +57,24 @@
     <ClCompile Include="stip\ActionHOGUtils.cpp">
       <Filter>Source Files\stip</Filter>
     </ClCompile>
+    <ClCompile Include="bgs\BackgroundSubtractorLBSP.cpp">
+      <Filter>Source Files\bgs</Filter>
+    </ClCompile>
+    <ClCompile Include="bgs\BackgroundSubtractorSuBSENSE.cpp">
+      <Filter>Source Files\bgs</Filter>
+    </ClCompile>
+    <ClCompile Include="bgs\bgfg_segm.cpp">
+      <Filter>Source Files\bgs</Filter>
+    </ClCompile>
+    <ClCompile Include="bgs\Input_source.cpp">
+      <Filter>Source Files\bgs</Filter>
+    </ClCompile>
+    <ClCompile Include="bgs\LBSP.cpp">
+      <Filter>Source Files\bgs</Filter>
+    </ClCompile>
+    <ClCompile Include="bgs\Tracking_STIP.cpp">
+      <Filter>Source Files\bgs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util.h">
@@ -70,6 +94,27 @@
     </ClInclude>
     <ClInclude Include="stip\ActionHOGUtils.h">
       <Filter>Header Files\stip</Filter>
+    </ClInclude>
+    <ClInclude Include="bgs\BackgroundSubtractorLBSP.h">
+      <Filter>Header Files\bgs</Filter>
+    </ClInclude>
+    <ClInclude Include="bgs\BackgroundSubtractorSuBSENSE.h">
+      <Filter>Header Files\bgs</Filter>
+    </ClInclude>
+    <ClInclude Include="bgs\DistanceUtils.h">
+      <Filter>Header Files\bgs</Filter>
+    </ClInclude>
+    <ClInclude Include="bgs\Input_source.h">
+      <Filter>Header Files\bgs</Filter>
+    </ClInclude>
+    <ClInclude Include="bgs\LBSP.h">
+      <Filter>Header Files\bgs</Filter>
+    </ClInclude>
+    <ClInclude Include="bgs\RandUtils.h">
+      <Filter>Header Files\bgs</Filter>
+    </ClInclude>
+    <ClInclude Include="bgs\Tracking_STIP.h">
+      <Filter>Header Files\bgs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
