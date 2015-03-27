@@ -59,16 +59,13 @@ public:
 	int getOpticalFlowHOG(const Mat &pre, const Mat &cur, const vector<KeyPoint> &keys, Mat &hog);
 
 	// write points and descriptors
-	int writeKeyDesc(int idx, const vector<KeyPoint> &keys);
+	int writeKeyDesc(const vector<KeyPoint> &keys);
 
 	//current frame
 	Mat src, pre, cur;
 
 	//Current foreground mask with isolated regions
 	Mat Rmask;
-
-	//Color descriptor
-	Mat imgHOG;
 
 	// motion history images with different data types
 	Mat mhi8U, mhi32F; 
@@ -78,6 +75,11 @@ public:
 	char vidname[50];
 
 	int Nbbox;
+
+	vector<KeyPoint> dstKeysf;
+
+	//Stores color STIP descriptors for each ROI
+	vector<vector<vector<float>>> STIPs_roi;
 
 private:
 
@@ -119,9 +121,9 @@ private:
 	int imgHOGDims, mhiHOGDims, optHOGDims;
 
 	// descriptors of each frame on different channels
-	Mat mhiHOG, optHOG;
+	Mat mhiHOG, optHOG, imgHOG;
 
-	vector<KeyPoint> dstKeys, dstKeysf;
+	vector<KeyPoint> dstKeys;
 
 	vector<int> kpts_roi;	
 };

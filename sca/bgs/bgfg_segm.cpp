@@ -12,9 +12,9 @@
 #include <iostream>
 #include "Input_source.h"
 #include "Tracking_STIP.h"
-#include "..\stip\ActionHOGLibs.h"
+#include "ActionHOGLibs.h"
 
-int main_bgs() 
+int main() 
 {
 	Input_source In_src;
 
@@ -28,11 +28,12 @@ int main_bgs()
 
 	int n_vid, cat_sel, vid_id;
 
-	bool flag_roi = true; //true: Load roi, false: work with full frame
-	bool flag_load = true;  //true: Load precomputed codebooks, false: Initialize from zero
+	bool flag_roi = false;		//true: Load roi, false: work with full frame
+	bool flag_load = false;		//true: Load precomputed codebooks, false: Initialize from zero
+	bool flag_saveROI = false;	//true: Save color, lbsp and stip for each roi, false: don't save
 
 	//Dsiplay flag information 
-	std::cout<<"Flag ROI : "<<flag_roi<<" Flag Load : "<<flag_load<<std::endl;
+	std::cout<<std::endl<<"Load ROI : "<<flag_roi<<" Load parameters : "<<flag_load<<" Save ROI info : "<<flag_saveROI<<std::endl<<std::endl;
 
 	switch (src)
 	{
@@ -161,7 +162,7 @@ int main_bgs()
 				imshow("segmentation mask",oCurrSegmMask);
 				//imshow("reconstructed background",oCurrReconstrBGImg);
 
-				//Copy information to track class
+				//Copy information to track object
 				Track_X.Fmask = oCurrSegmMask;
 				Track_X.Im_RGB = oCurrInputFrame;
 				Track_X.Im_LBSP = oBGSAlg.LBSP_m;
@@ -172,11 +173,11 @@ int main_bgs()
 				Track_X.getRegions();
 
 				//Save bbox color and LBSP image every 3 frames
-				if(In_src.fr_idx % 3 == 0){
+				if((In_src.fr_idx % 3 == 0)&flag_saveROI){
 					Track_X.Save_bbox();
 				}
 
-				//Copy information to ActionHOG class
+				//Copy information to ActionHOG object
 				Stip_X.src = oCurrInputFrame;
 				Stip_X.Rmask = Track_X.Rmask;
 				strcpy(Stip_X.vidname ,In_src.vidname);
@@ -185,6 +186,16 @@ int main_bgs()
 
 				//Compute STIP features
 				Stip_X.comp();
+
+				//Write keys and descriptors every 3 frames
+				if((In_src.fr_idx % 3 == 0)&flag_saveROI){
+					Stip_X.writeKeyDesc(Stip_X.dstKeysf);
+				}
+
+				//Copy STIP descriptors to track object
+				Track_X.STIPs_roi = Stip_X.STIPs_roi;
+
+				
 
 				if(cv::waitKey(1)==27)
 					break;
