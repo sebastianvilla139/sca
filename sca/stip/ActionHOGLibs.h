@@ -34,7 +34,18 @@ class ActionHOG {
 public:
 	ActionHOG();
 
+	ActionHOG(string detName, string featChan, int imgNGrids, int imgNBins,
+			  int mhiNGrids, int mhiNBins, int optNGrids, int optNBins, bool flag, string frame_index_dir, int person, int first_frame_number);
+
 	~ActionHOG();
+
+	// compute ActionHOG feature
+	int check(string vidFileName, string featFileName);
+
+	int writeHeader();
+
+	// set video properties
+	int setVidProp(int f, int h, int w);
 
 	// compute ActionHOG
 	int comp();
@@ -79,8 +90,9 @@ public:
 
 	int Nbbox;
 
-private:
 
+private:
+	
 	// Filter STIPS with foreground masks
 	void filter_Fmask();
 
@@ -111,6 +123,7 @@ private:
 	int optnbs;
 
 	// frame size
+	int nframes;
 	int height;
 	int width;
 	int fr_p;
@@ -120,7 +133,6 @@ private:
 
 	// descriptors of each frame on different channels
 	Mat mhiHOG, optHOG;
-
 	vector<KeyPoint> dstKeys, dstKeysf;
 
 	vector<int> kpts_roi;	

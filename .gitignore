@@ -181,3 +181,5 @@ UpgradeLog*.htm
 
 # Microsoft Fakes
 FakesAssemblies/
+sca/bgs/LICENSE.txt
+sca/bgs/README.txt

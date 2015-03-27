@@ -70,6 +70,9 @@
 #include <xalanc/XSLT/XSLTResultTarget.hpp>
 #include <xalanc/XalanDOM/XalanDOMString.hpp>
 
+// STIP includes
+#include "stip/ActionHOGLibs.h"
+
 // Util includes
 #include "util.h"
 
@@ -127,6 +130,35 @@ void set_labels(cv::Mat& im, cv::Rect r, std::string label_top, std::string labe
 	cv::Size text_bottom = cv::getTextSize(label_middle, fontface, scale, thickness, &baseline);
     cv::Point pt_bottom(r.x + (r.width-text_bottom.width)/2, r.y + (r.height - bottom_offset));    
     cv::putText(im, label_bottom, pt_bottom, fontface, scale, color, thickness, 8);
+}
+
+void compute_STIP(string video_path, string stip_output_file, string frame_index_dir, int person_id, int first_frame_index_number) {
+	// setup default parameters 
+	string detName("SURF"); 		// interest point detector (no dominant orientations)
+	string featChan("IMG_MHI_OPT"); // feature channels
+	bool vis = false; 				// no visualization
+
+	int imgNGrids = 3; // number of grids in x and y for image channel
+	int imgNBins = 8;  // number of bins to quantize gradient orientation for image channel
+
+	int mhiNGrids = 3; // number of grids in x and y for MHI channel
+	int mhiNBins = 8;  // number of bins to quantize gradient orientation for MHI channel
+	
+	int optNGrids = 3; // number of grids in x and y for optical flow channel
+	int optNBins = 8;  // number of bins to quantize gradient orientation for optical flow channel
+
+	//initialize ActionHOG
+	ActionHOG feat( detName, featChan,
+				    imgNGrids, imgNBins,
+				    mhiNGrids, mhiNBins,
+				    optNGrids, optNBins,
+				    vis, frame_index_dir, person_id, first_frame_index_number);
+
+	// check video file and feature file	
+	feat.check(video_path, stip_output_file);
+
+	// compute ActionHOG
+	feat.comp();
 }
 
 void serialize_group() {
@@ -647,7 +679,84 @@ int main(int argc, char *argv[])
 								}								
 
 								if (strcmp(argv[7], "1") == 0) {									
-									// TODO Compute STIP descriptors...
+									for (vec::const_iterator it_person(person_path_vector.begin()), it_person_end(person_path_vector.end()); it_person != it_person_end; ++it_person)
+									{
+										//cout << currentDateTime()  << "   " << *it_person << '\n';									
+
+										path profile_dir (*it_person);
+
+										int person_id = std::stoi(person_dir.filename().string().substr(6));
+									
+										/*										
+										string full_video_dir_pathname = profile_dir.string() + "\\video.avi";
+
+										//cout << currentDateTime()  << "full_video_dir_pathname: " << full_video_dir_pathname << endl;																
+
+										VideoCapture cap(full_video_dir_pathname); // open the video file for reading
+
+										if ( !cap.isOpened() )  // if not success, exit program
+										{
+											 cout << currentDateTime()  << "Cannot open the video file" << endl;
+											 return -1;
+										}									
+
+										//int frame_count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frames per seconds of the video
+										//cout << currentDateTime()  << "Frame count : " << frame_count << endl;
+
+										//double fps = cap.get(CV_CAP_PROP_FPS); //get the frames per seconds of the video
+										//cout << currentDateTime()  << "Frame per seconds : " << fps << endl;
+
+										// STIP
+										string stip_output_pathname = profile_dir.string() + "\\video_stip_" + profile_dir.filename().string() + "_" + frames_path.filename().string() + ".txt";
+
+										//cout << currentDateTime()  << "stip_full_video_pathname: " << full_video_dir_pathname << endl;
+										//cout << currentDateTime()  << "stip_output_pathname: " << stip_output_pathname << endl;
+
+										//cout << currentDateTime()  << "person_dir.filename().string(): " << person_dir.filename().string() << endl;
+										//cout << currentDateTime()  << "person_dir.filename().string().length(): " << person_dir.filename().string().length() << endl;
+										//cout << currentDateTime()  << "person_dir.filename().string().substr(5): " << person_dir.filename().string().substr(5) << endl;
+										//cout << currentDateTime()  << "person_dir.filename().string().substr(6): " << person_dir.filename().string().substr(6) << endl;
+										
+										cout << currentDateTime()  << "Processing STIP for person id: " << person_id << endl;										
+
+										compute_STIP(full_video_dir_pathname, stip_output_pathname, frame_index_dir_path, person_id, first_frame_index_number);
+										cout << currentDateTime()  << "STIP calculated for " << person_dir.filename().string() << "\\" << profile_dir.filename().string() << "..." << endl;
+										*/
+
+										string bg_full_video_dir_pathname = profile_dir.string() + "\\video_bg.avi";
+
+										//cout << currentDateTime()  << "bg_full_video_dir_pathname: " << bg_full_video_dir_pathname << endl;																
+
+										VideoCapture bg_cap(bg_full_video_dir_pathname); // open the video file for reading
+
+										if ( !bg_cap.isOpened() )  // if not success, exit program
+										{
+											 cout << currentDateTime()  << "Cannot open the video file" << endl;
+											 return -1;
+										}									
+
+										//int frame_count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frames per seconds of the video
+										//cout << currentDateTime()  << "Frame count : " << frame_count << endl;
+
+										//double fps = cap.get(CV_CAP_PROP_FPS); //get the frames per seconds of the video
+										//cout << currentDateTime()  << "Frame per seconds : " << fps << endl;
+
+										// STIP
+										string bg_stip_output_pathname = profile_dir.string() + "\\video_bg_stip_" + profile_dir.filename().string() + "_" + frames_path.filename().string() + ".txt";
+
+										//cout << currentDateTime()  << "stip_bg_full_video_pathname: " << bg_full_video_dir_pathname << endl;
+										//cout << currentDateTime()  << "stip_output_pathname: " << stip_output_pathname << endl;
+
+										//cout << currentDateTime()  << "person_dir.filename().string(): " << person_dir.filename().string() << endl;
+										//cout << currentDateTime()  << "person_dir.filename().string().length(): " << person_dir.filename().string().length() << endl;
+										//cout << currentDateTime()  << "person_dir.filename().string().substr(5): " << person_dir.filename().string().substr(5) << endl;
+										//cout << currentDateTime()  << "person_dir.filename().string().substr(6): " << person_dir.filename().string().substr(6) << endl;
+										
+										cout << currentDateTime()  << "Processing bg STIP for person id: " << person_id << endl;										
+
+										compute_STIP(bg_full_video_dir_pathname, bg_stip_output_pathname, frame_index_dir_path, person_id, first_frame_index_number);
+										cout << currentDateTime()  << "bg STIP calculated for " << person_dir.filename().string() << "\\" << profile_dir.filename().string() << "..." << endl;
+									}
 								}
 							}
 						}

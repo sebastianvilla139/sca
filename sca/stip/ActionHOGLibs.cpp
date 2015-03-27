@@ -3,10 +3,146 @@
 #include "ActionHOGLibs.h"
 #include "opencv2\nonfree\nonfree.hpp"
 
+// Xerces includes
+#include <xercesc/dom/DOM.hpp>
+#include <xercesc/dom/DOMDocument.hpp>
+#include <xercesc/dom/DOMDocumentType.hpp>
+#include <xercesc/dom/DOMElement.hpp>
+#include <xercesc/dom/DOMImplementation.hpp>
+#include <xercesc/dom/DOMImplementationLS.hpp>
+#include <xercesc/dom/DOMNodeIterator.hpp>
+#include <xercesc/dom/DOMNodeList.hpp>
+#include <xercesc/dom/DOMText.hpp>
+#include <xercesc/parsers/XercesDOMParser.hpp>
+#include <xercesc/util/XMLUni.hpp>
+#include <xercesc/util/XMLString.hpp>
+#include <xercesc/sax/HandlerBase.hpp>
+#include <xercesc/util/PlatformUtils.hpp>
+
+// XQilla includes
+#include <xqilla/xqilla-dom3.hpp>
+
+// XSD Codesynthesis generated stubs includes
+#include "../xml/group.hxx"
+#include "../xml/frame_info.hxx"
+
+// Util includes
+#include "../util.h"
 
 using std::cout;
 using std::cerr;
+using namespace cv;
+using namespace std;
+XERCES_CPP_NAMESPACE_USE
 
+#define MAX_FRAME_INDEX_FILENAME_SIZE 10
+
+DOMImplementation* xqillaImplementation;
+DOMLSParser* xmlParser;
+DOMConfiguration* dc_parser;
+string frame_index_path;
+int person_id;
+int first_frame_index_number;
+
+ActionHOG::ActionHOG(string detName, string featChan, int imgNGrids, int imgNBins,
+					 int mhiNGrids, int mhiNBins, int optNGrids, int optNBins, bool flag, string frame_index_dir, int person, int first_frame_number) {
+	det = detName;
+	
+	chan = featChan;
+	imgflag = mhiflag = optflag = true;
+	
+	vis = false;
+
+	imgngs = imgNGrids; imgnbs = imgNBins;
+	mhings = mhiNGrids; mhinbs = mhiNBins;
+	optngs = optNGrids; optnbs = optNBins;
+
+	imgHOGDims = imgngs*imgngs*imgnbs;
+	mhiHOGDims = mhings*mhings*mhinbs;
+	optHOGDims = optngs*optngs*optnbs;
+	
+	fp = NULL;
+
+	frame_index_path = frame_index_dir;
+
+	person_id = person;
+	first_frame_index_number = first_frame_number;
+
+	xqillaImplementation = DOMImplementationRegistry::getDOMImplementation(X("XPath2 3.0"));
+	xmlParser = xqillaImplementation->createLSParser(DOMImplementationLS::MODE_SYNCHRONOUS, 0);
+	dc_parser = xmlParser->getDomConfig();
+	
+	dc_parser->setParameter(XMLUni::fgDOMNamespaces, true);
+	dc_parser->setParameter(XMLUni::fgXercesSchema, true);
+	dc_parser->setParameter(XMLUni::fgDOMValidate, true);	
+}
+
+int ActionHOG::check(string vidFileName, string featFileName) {
+	if (!vid.open(vidFileName)) {
+		cerr << "Cannot open the video file: " << vidFileName << "!\n";
+		system("pause");
+		exit(0);
+	}
+
+	fp = fopen(featFileName.c_str(), "w");
+	if (fp == NULL) {
+		cerr << "Cannot open the feature file" << featFileName << "!\n";
+		system("pause");
+		exit(0);
+	}
+
+	//std::cout << currentDateTime()  << "CV_CAP_PROP_FRAME_COUNT: " << vid.get(CV_CAP_PROP_FRAME_COUNT) << std::endl;
+
+	setVidProp( (int)vid.get(CV_CAP_PROP_FRAME_COUNT),
+			    (int)vid.get(CV_CAP_PROP_FRAME_HEIGHT),
+			    (int)vid.get(CV_CAP_PROP_FRAME_WIDTH) );
+
+	// writeHeader();
+
+	return 1;
+}
+
+
+int ActionHOG::writeHeader() {
+	fprintf(fp, "# frameWidth: %d frameHeight: %d frameNumber: %d\n", width, height, nframes);
+	fprintf(fp, "# detector: %s channel: %s\n", det.c_str(), chan.c_str());
+
+	if (chan == "IMG") {
+		mhiflag = optflag = false;
+		fprintf(fp, "# t x y s imgHOG(%d)\n", imgHOGDims);
+	} else if (chan == "MHI") {
+		imgflag = optflag = false;
+		fprintf(fp, "# t x y s mhiHOG(%d)\n", mhiHOGDims);
+	} else if (chan == "OPT") {
+		imgflag = mhiflag = false;
+		fprintf(fp, "# t x y s optHOG(%d)\n", optHOGDims);
+	} else if (chan == "IMG_MHI") {
+		optflag = false;
+		fprintf(fp, "# t x y s imgHOG(%d) mhiHOG(%d)\n", imgHOGDims, mhiHOGDims);
+	} else if (chan == "IMG_OPT") {
+		mhiflag = false;
+		fprintf(fp, "# t x y s imgHOG(%d) optHOG(%d)\n", imgHOGDims, optHOGDims);
+	} else if (chan == "MHI_OPT") {
+		imgflag = false;
+		fprintf(fp, "# t x y s mhiHOG(%d) optHOG(%d)\n", mhiHOGDims, optHOGDims);
+	} else if (chan == "IMG_MHI_OPT") {
+		fprintf(fp, "# t x y s imgHOG(%d) mhiHOG(%d) optHOG(%d)\n", imgHOGDims, mhiHOGDims, optHOGDims);	
+	} else {
+		cerr << "Feature channel: " << chan << " is not available!\n";
+		system("pause");
+		exit(0);
+	}
+
+	return 1;
+}
+
+int ActionHOG::setVidProp(int f, int h, int w) {
+	nframes = f;
+	height = h;
+	width = w;
+
+	return 1;
+}
 
 ActionHOG::ActionHOG() {
 	det = "SURF";
@@ -33,18 +169,31 @@ ActionHOG::ActionHOG() {
 
 ActionHOG::~ActionHOG() {
 	vid.release();
+
+	fclose(fp); fp = NULL;
 }
 
-
-
-
 int ActionHOG::comp() {
-
+	// source, preceding, and current frames
+	Mat src, pre, cur;
+	// motion history images with different data types
+	Mat mhi8U, mhi32F; 
 	// number of detected points
 	int count = 0;
 	// time counter at starting point
 	double stimer = (double)getTickCount();
-	
+
+	// do the job
+	for (int i = 0; i < nframes; ++i) {
+		// average speed and total number of points in every 100 frames
+		if (i % 100 == 0) {
+			double timer = (getTickCount() - stimer) / getTickFrequency();
+			//cout << currentDateTime()  << "at frame: " << i << " -> speed: avg fps = " << i / timer << " -> points: total num = " << count << "\n";
+		}
+
+		if (!vid.read(src))
+			continue;
+		
 		if (src.channels() == 3)
 			cvtColor(src, cur, CV_RGB2GRAY);
 		else
